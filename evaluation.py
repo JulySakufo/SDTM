@@ -91,10 +91,10 @@ def compute_fid(real_path, fake_path):
     score = fid.compute_fid(real_path, fake_path, custom_feat_extractor=custom_extractor)
     return score
 
-def compute_is(image_path):
-    """
-    Compute Inception Score for generated images.
-    """
+def compute_is(image_path, device='cuda', splits=10):
+    import torch
+    import torch.nn.functional as F
+    import numpy as np
     from PIL import Image
     import torchvision.transforms as transforms
 
@@ -109,18 +109,25 @@ def compute_is(image_path):
     for img_file in os.listdir(image_path):
         if img_file.endswith('.jpg') or img_file.endswith('.png'):
             img = Image.open(os.path.join(image_path, img_file)).convert('RGB')
-            img_tensor = transform(img)
-            images.append(img_tensor)
+            images.append(transform(img))
 
-    if not images:
-        raise ValueError("No images found in the directory")
+    images = torch.stack(images).to(device)
 
-    images = torch.stack(images)
+    custom_extractor.eval()
+    with torch.no_grad():
+        logits = custom_extractor(images)
 
-    inception = InceptionScore()
-    inception.update(images)
-    score = inception.compute()
-    return score
+    probs = F.softmax(logits, dim=1).cpu().numpy()
+
+    scores = []
+    N = probs.shape[0]
+    for i in range(splits):
+        part = probs[i * N // splits: (i + 1) * N // splits]
+        py = np.mean(part, axis=0)
+        kl = part * (np.log(part + 1e-10) - np.log(py + 1e-10))
+        scores.append(np.exp(np.mean(np.sum(kl, axis=1))))
+
+    return np.mean(scores), np.std(scores)
 
 def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -132,11 +139,14 @@ def main(args):
 
     # Load pipeline
     if args.torch_dtype == "float32":
-        pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float32)
+        default_pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float32)
+        sdtm_pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float32)
     elif args.torch_dtype == "float16":
-        pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float16)
+        default_pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float16)
+        sdtm_pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float16)
 
-    pipe = pipe.to(device)
+    default_pipe = default_pipe.to(device)
+    sdtm_pipe = sdtm_pipe.to(device)
 
     # Extract model name
     model_name = os.path.basename(args.model_path)
@@ -149,12 +159,12 @@ def main(args):
 
     # Generate Default images
     print("Generating Default images...")
-    default_time = generate_images(pipe, captions_list, args, default_output, "Default")
+    default_time = generate_images(default_pipe, captions_list, args, default_output, "Default")
 
     # Apply SDTM
     print("Applying SDTM...")
-    pipe = apply_SDTM(
-        pipe,
+    sdtm_pipe = apply_SDTM(
+        sdtm_pipe,
         ratio=args.SDTM_ratio,
         deviation=args.SDTM_deviation,
         switch_step=args.SDTM_switch_step,
@@ -169,15 +179,10 @@ def main(args):
         protect_steps_frequency=args.SDTM_protect_steps_frequency,
         protect_layers_frequency=args.SDTM_protect_layers_frequency,
     )
-    print(f"SDTM applied. Pipe type: {type(pipe)}")
-    if hasattr(pipe, '_tore_info'):
-        print("SDTM info present.")
-    else:
-        print("SDTM info NOT present!")
 
     # Generate SDTM images
     print("Generating SDTM images...")
-    sdtm_time = generate_images(pipe, captions_list, args, sdtm_output, "SDTM")
+    sdtm_time = generate_images(sdtm_pipe, captions_list, args, sdtm_output, "SDTM")
 
     # Compute metrics
     print("Computing metrics...")
@@ -185,13 +190,12 @@ def main(args):
     # FID with COCO val as reference
     fid_default = compute_fid(sdtm_output, default_output)
 
-    '''
-    fid_sdtm = compute_fid('coco-val', sdtm_output)
-
     # IS
     is_default = compute_is(default_output)
     is_sdtm = compute_is(sdtm_output)
+
     '''
+    fid_sdtm = compute_fid('datasets/val2017', sdtm_output)
 
     # Speedup ratio
     speedup = default_time / sdtm_time if sdtm_time > 0 else float('inf')
@@ -213,6 +217,8 @@ def main(args):
     print(f"Default FID: {fid_default:.4f}")
     # print(f"SDTM FID: {fid_sdtm:.4f}")
     # print()
+    '''
+
     # print("Inception Score (higher is better):")
     # print(f"Default IS: {is_default:.4f}")
     # print(f"SDTM IS: {is_sdtm:.4f}")
@@ -244,8 +250,8 @@ if __name__ == "__main__":
     parser.add_argument("--SDTM-a-p", type=float, default=2)
     parser.add_argument("--SDTM-pseudo-merge", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--SDTM-mcw", type=float, default=0.1)
-    parser.add_argument("--SDTM-protect-steps-frequency", type=int, default=1)
-    parser.add_argument("--SDTM-protect-layers-frequency", type=int, default=1)
+    parser.add_argument("--SDTM-protect-steps-frequency", type=int, default=3)
+    parser.add_argument("--SDTM-protect-layers-frequency", type=int, default=-1)
     parser.add_argument("--SDTM-cache-each-step", action=argparse.BooleanOptionalAction, default=False)
 
     args = parser.parse_args()
