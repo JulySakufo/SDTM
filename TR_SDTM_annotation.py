@@ -172,142 +172,182 @@ def SSM(
         # 保证low_thr >= high_thr
         low_thr, high_thr = max(low_thr, high_thr), min(low_thr, high_thr)
 
-        # class: 0=低复杂度(16->1), 1=中复杂度(16->2), 2=高复杂度(16->4)
+        # class: 0=低复杂度(16->1), 1=中复杂度(16->2), 2=高复杂度(16->4)  -1=不merge(unm)
         selected_class = torch.full((B, num_windows), -1, dtype=torch.long, device=metric.device)
+
+        # dst_keep per class: 0->1, 1->2, 2->4; src_num per class: K-1, K-2, K-4
+        # For vectorized construction we handle each (class, keep_n) tier separately.
+        # To guarantee identical sequence lengths across the batch, we compute the
+        # *minimum* window count for each tier across batch items and use that fixed count.
 
         if reduce_num is None:
             # (2.1) adaptive版本: 按ssmscore阈值选window，再按variance_map阈值分档
             cand_mask = ssmscore_map >= float(threshold)
-
-            low_mask = cand_mask & (variance_map >= low_thr)
-            mid_mask = cand_mask & (variance_map < low_thr) & (variance_map >= high_thr)
+            low_mask  = cand_mask & (variance_map >= low_thr)
+            mid_mask  = cand_mask & (variance_map < low_thr) & (variance_map >= high_thr)
             high_mask = cand_mask & (variance_map < high_thr)
 
-            low_cnt = low_mask.sum(dim=1)
-            mid_cnt = mid_mask.sum(dim=1)
-            high_cnt = high_mask.sum(dim=1)
+            # 取各档在batch内的最小数量以保证长度一致（向量化 topk）
+            keep_low  = int(low_mask.sum(dim=1).min().item())
+            keep_mid  = int(mid_mask.sum(dim=1).min().item())
+            keep_high = int(high_mask.sum(dim=1).min().item())
 
-            # 为保持batch内token长度一致，取每档最小数量
-            keep_low = int(low_cnt.min().item()) if low_cnt.numel() > 0 else 0
-            keep_mid = int(mid_cnt.min().item()) if mid_cnt.numel() > 0 else 0
-            keep_high = int(high_cnt.min().item()) if high_cnt.numel() > 0 else 0
-
-            for bi in range(B):
-                if keep_low > 0:
-                    low_idx = torch.where(low_mask[bi])[0]
-                    low_score = ssmscore_map[bi, low_idx]
-                    chosen = low_idx[torch.topk(low_score, keep_low, largest=True).indices]
-                    selected_class[bi, chosen] = 0
-                if keep_mid > 0:
-                    mid_idx = torch.where(mid_mask[bi])[0]
-                    mid_score = ssmscore_map[bi, mid_idx]
-                    chosen = mid_idx[torch.topk(mid_score, keep_mid, largest=True).indices]
-                    selected_class[bi, chosen] = 1
-                if keep_high > 0:
-                    high_idx = torch.where(high_mask[bi])[0]
-                    high_score = ssmscore_map[bi, high_idx]
-                    chosen = high_idx[torch.topk(high_score, keep_high, largest=True).indices]
-                    selected_class[bi, chosen] = 2
+            # 使用 score * mask - 大负数 对不合格项压制，再 topk 取 keep_xxx 个，纯 GPU 操作
+            NEG_INF = -1e9
+            if keep_low > 0:
+                score_low = ssmscore_map.masked_fill(~low_mask, NEG_INF)
+                chosen_low = score_low.topk(keep_low, dim=-1).indices      # [B, keep_low]
+                selected_class.scatter_(1, chosen_low,
+                    torch.zeros(B, keep_low, dtype=torch.long, device=metric.device))
+            if keep_mid > 0:
+                score_mid = ssmscore_map.masked_fill(~mid_mask, NEG_INF)
+                chosen_mid = score_mid.topk(keep_mid, dim=-1).indices
+                selected_class.scatter_(1, chosen_mid,
+                    torch.ones(B, keep_mid, dtype=torch.long, device=metric.device))
+            if keep_high > 0:
+                score_high = ssmscore_map.masked_fill(~high_mask, NEG_INF)
+                chosen_high = score_high.topk(keep_high, dim=-1).indices
+                selected_class.scatter_(1, chosen_high,
+                    torch.full((B, keep_high), 2, dtype=torch.long, device=metric.device))
         else:
-            # (2.2) 固定参数版本: 指定reduce_num，按variance_map排序后分25%/25%/50%
+            # (2.2) 固定参数版本: 指定reduce_num，按variance_map的相对大小对选出window分25%/25%/50%三档
             r = min(int(reduce_num), num_windows)
             if r > 0:
-                _, sim_super_patch_idxs = ssmscore_map.topk(r, dim=-1)
-                low_n = int(r * 0.25)
-                mid_n = int(r * 0.25)
+                _, sim_super_patch_idxs = ssmscore_map.topk(r, dim=-1)   # [B, r]
+                low_n  = int(r * 0.25)
+                mid_n  = int(r * 0.25)
                 high_n = r - low_n - mid_n
 
-                for bi in range(B):
-                    idx = sim_super_patch_idxs[bi]  # [r]
-                    v = variance_map[bi, idx]
-                    order = torch.argsort(v, descending=True)  # 高分(低复杂度)在前
-                    sorted_idx = idx[order]
-                    if low_n > 0:
-                        selected_class[bi, sorted_idx[:low_n]] = 0
-                    if mid_n > 0:
-                        selected_class[bi, sorted_idx[low_n:low_n + mid_n]] = 1
-                    if high_n > 0:
-                        selected_class[bi, sorted_idx[low_n + mid_n:]] = 2
+                # 取每个batch对应选出窗口的variance分数，按降序排列（高分=低复杂度在前）
+                sel_var = variance_map.gather(1, sim_super_patch_idxs)    # [B, r]
+                order   = sel_var.argsort(dim=-1, descending=True)        # [B, r]
+                sorted_idxs = sim_super_patch_idxs.gather(1, order)       # [B, r] 已按复杂度排序
 
-        # --- 按分类构建unm/src/dst/merge_idx映射 ---
-        dst_keep_map = {0: 1, 1: 2, 2: 4}
-        all_unm_idx = []
-        all_src_idx = []
-        all_dst_idx = []
-        all_merge_idx = []
+                if low_n > 0:
+                    selected_class.scatter_(1, sorted_idxs[:, :low_n],
+                        torch.zeros(B, low_n, dtype=torch.long, device=metric.device))
+                if mid_n > 0:
+                    selected_class.scatter_(1, sorted_idxs[:, low_n:low_n + mid_n],
+                        torch.ones(B, mid_n, dtype=torch.long, device=metric.device))
+                if high_n > 0:
+                    selected_class.scatter_(1, sorted_idxs[:, low_n + mid_n:],
+                        torch.full((B, high_n), 2, dtype=torch.long, device=metric.device))
 
-        for bi in range(B):
-            unm_list = []
-            src_list = []
-            dst_list = []
-            mg_list = []
+        # -----------------------------------------------------------------------
+        # 向量化构建 unm/src/dst/merge_idx，消除 Python for 循环
+        # dst_keep per class: {0:1, 1:2, 2:4}
+        # 对每一档 (cls_id, keep_n) 独立处理，最终拼接
+        # -----------------------------------------------------------------------
+        # 预先为每个窗口生成随机 dst 位置（全部 GPU 上完成，无 Python 循环）
+        # 为 keep_n=1 生成 1 个随机位置；keep_n=2 生成 2 个；keep_n=4 生成 4 个
+        # 使用 rand().argsort() 代替 randperm，可在 batch+window 维度一次生成
 
-            for wi in range(num_windows):
-                cls = int(selected_class[bi, wi].item())
-                token_ids = windowed_tensor[bi, wi]  # [K]
+        # 预计算归一化窗口特征，用于 keep_n>1 时的 src->dst 分配
+        wf_norm = window_feat / (window_feat.norm(dim=-1, keepdim=True) + 1e-6)  # [B, W, K, c]
 
-                if cls < 0:
-                    unm_list.extend(token_ids.tolist())
-                    continue
+        # 全局随机排列: [B, num_windows, K]，每个窗口内 K 个位置的随机顺序
+        if no_rand:
+            rand_order = torch.arange(K, device=metric.device).view(1, 1, K).expand(B, num_windows, K)
+        else:
+            rand_noise = torch.rand(B, num_windows, K, device=metric.device, generator=generator)
+            rand_order = rand_noise.argsort(dim=-1)   # [B, num_windows, K]
 
-                keep_n = int(dst_keep_map[cls])
-                if keep_n >= K:
-                    unm_list.extend(token_ids.tolist())
-                    continue
+        # windowed_tensor: [B, num_windows, K] — token id 表
+        # 按 rand_order 重排 token ids，前 keep_n 个是 dst，其余是 src
+        shuffled_tokens = windowed_tensor.gather(2, rand_order)  # [B, num_windows, K]
 
-                if no_rand:
-                    dst_pos = torch.arange(keep_n, device=metric.device, dtype=torch.long)
-                else:
-                    if generator is not None:
-                        dst_pos = torch.randperm(K, device=metric.device, generator=generator)[:keep_n]
-                    else:
-                        dst_pos = torch.randperm(K, device=metric.device)[:keep_n]
+        all_unm_idx_list = []
+        all_src_idx_list = []
+        all_dst_idx_list = []
+        all_merge_idx_list = []
 
-                pos_mask = torch.ones(K, dtype=torch.bool, device=metric.device)
-                pos_mask[dst_pos] = False
-                src_pos = torch.arange(K, device=metric.device)[pos_mask]
+        dst_cum = 0  # dst_idx 在全局 dst 列表中的累计偏移（用于 merge_idx 的值）
 
-                dst_tokens = token_ids[dst_pos]
-                src_tokens = token_ids[src_pos]
+        for cls_id, keep_n in [(0, 1), (1, 2), (2, 4)]:
+            src_n = K - keep_n
+            cls_mask = (selected_class == cls_id)          # [B, num_windows], bool
+            # 保证 batch 内每档窗口数相同（已由上面构建逻辑保证），取最小以防万一
+            cls_cnt_per_batch = cls_mask.sum(dim=1)        # [B]
+            n_cls = int(cls_cnt_per_batch.min().item())
+            if n_cls == 0:
+                all_src_idx_list.append(None)
+                all_dst_idx_list.append(None)
+                all_merge_idx_list.append(None)
+                continue
 
-                base = len(dst_list)
-                dst_list.extend(dst_tokens.tolist())
+            # 取各 batch 中该类的前 n_cls 个窗口（按窗口 id 升序，稳定）
+            # score 替换成 cls_mask 的 float，用 topk 取 n_cls 个窗口索引
+            cls_win_idx = cls_mask.float().topk(n_cls, dim=-1).indices   # [B, n_cls]
 
-                if src_tokens.numel() > 0:
-                    src_list.extend(src_tokens.tolist())
+            # 取这些窗口的 shuffled token: [B, n_cls, K]
+            tokens_cls = shuffled_tokens.gather(
+                1, cls_win_idx.unsqueeze(-1).expand(B, n_cls, K))
 
-                    if keep_n == 1:
-                        assign = torch.zeros(src_tokens.numel(), dtype=torch.long, device=metric.device)
-                    else:
-                        feat = window_feat[bi, wi]  # [K, c]
-                        feat = feat / (feat.norm(dim=-1, keepdim=True) + 1e-6)
-                        src_feat = feat[src_pos]    # [K-keep_n, c]
-                        dst_feat = feat[dst_pos]    # [keep_n, c]
-                        sim_sd = src_feat @ dst_feat.transpose(0, 1)
-                        assign = sim_sd.argmax(dim=-1)
+            # dst: 前 keep_n 列；src: 后 src_n 列
+            dst_tokens = tokens_cls[:, :, :keep_n]    # [B, n_cls, keep_n]
+            src_tokens = tokens_cls[:, :, keep_n:]    # [B, n_cls, src_n]
 
-                    mg_list.extend((base + assign).tolist())
+            # merge_idx: 将每个 src 分配到最近的 dst（相对于当前档 dst 的局部偏移）
+            if keep_n == 1:
+                # 唯一 dst，所有 src 都分配到 0
+                merge_local = torch.zeros(B, n_cls, src_n, dtype=torch.long, device=metric.device)
+            else:
+                # [B, n_cls, src_n, c] 与 [B, n_cls, keep_n, c] 的余弦相似度
+                # wf_norm 按 cls_win_idx 取出对应窗口
+                wf_cls = wf_norm.gather(
+                    1, cls_win_idx.unsqueeze(-1).unsqueeze(-1).expand(B, n_cls, K, c))  # [B, n_cls, K, c]
+                # 按 rand_order 重排 wf_cls 使之与 shuffled_tokens 对齐
+                rand_cls = rand_order.gather(
+                    1, cls_win_idx.unsqueeze(-1).expand(B, n_cls, K))   # [B, n_cls, K]
+                wf_cls = wf_cls.gather(
+                    2, rand_cls.unsqueeze(-1).expand(B, n_cls, K, c))   # [B, n_cls, K, c]
+                src_feat = wf_cls[:, :, keep_n:, :]   # [B, n_cls, src_n, c]
+                dst_feat = wf_cls[:, :, :keep_n, :]   # [B, n_cls, keep_n, c]
+                # sim: [B, n_cls, src_n, keep_n]
+                sim_sd = torch.einsum('bwsc,bwdc->bwsd', src_feat, dst_feat)
+                merge_local = sim_sd.argmax(dim=-1)    # [B, n_cls, src_n]
 
-            all_unm_idx.append(torch.tensor(unm_list, device=metric.device, dtype=torch.long).unsqueeze(-1))
-            all_src_idx.append(torch.tensor(src_list, device=metric.device, dtype=torch.long).unsqueeze(-1))
-            all_dst_idx.append(torch.tensor(dst_list, device=metric.device, dtype=torch.long).unsqueeze(-1))
-            all_merge_idx.append(torch.tensor(mg_list, device=metric.device, dtype=torch.long).unsqueeze(-1))
+            # merge_idx 的值要指向全局 dst 列表中的位置
+            # 全局偏移 = dst_cum + 窗口在当前档内的序号 * keep_n + 局部 dst 位置
+            win_base = torch.arange(n_cls, device=metric.device).view(1, n_cls, 1) * keep_n  # [1, n_cls, 1]
+            merge_global = dst_cum + win_base + merge_local    # [B, n_cls, src_n]
 
-        # batch内长度需一致(通过上面的min/固定比例保证)
-        unm_len = all_unm_idx[0].shape[0] if len(all_unm_idx) > 0 else 0
-        src_len = all_src_idx[0].shape[0] if len(all_src_idx) > 0 else 0
-        dst_len = all_dst_idx[0].shape[0] if len(all_dst_idx) > 0 else 0
+            # 展平 src/dst/merge
+            dst_flat   = dst_tokens.reshape(B, n_cls * keep_n).unsqueeze(-1)    # [B, n_cls*keep_n, 1]
+            src_flat   = src_tokens.reshape(B, n_cls * src_n).unsqueeze(-1)     # [B, n_cls*src_n, 1]
+            merge_flat = merge_global.reshape(B, n_cls * src_n).unsqueeze(-1)   # [B, n_cls*src_n, 1]
 
-        for bi in range(B):
-            assert all_unm_idx[bi].shape[0] == unm_len
-            assert all_src_idx[bi].shape[0] == src_len
-            assert all_dst_idx[bi].shape[0] == dst_len
-            assert all_merge_idx[bi].shape[0] == src_len
+            all_src_idx_list.append(src_flat)
+            all_dst_idx_list.append(dst_flat)
+            all_merge_idx_list.append(merge_flat)
 
-        unm_idx = torch.stack(all_unm_idx, dim=0) if unm_len > 0 else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
-        src_idx = torch.stack(all_src_idx, dim=0) if src_len > 0 else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
-        dst_idx = torch.stack(all_dst_idx, dim=0) if dst_len > 0 else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
-        merge_idx = torch.stack(all_merge_idx, dim=0) if src_len > 0 else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
+            dst_cum += n_cls * keep_n
+
+        # unm: 所有 selected_class == -1 的窗口的全部 K 个 token
+        # 同样向量化：取 unm 窗口数的最小值
+        unm_mask = (selected_class == -1)    # [B, num_windows]
+        unm_cnt  = unm_mask.sum(dim=1)
+        n_unm    = int(unm_cnt.min().item())
+        if n_unm > 0:
+            unm_win_idx = unm_mask.float().topk(n_unm, dim=-1).indices    # [B, n_unm]
+            unm_tokens  = windowed_tensor.gather(
+                1, unm_win_idx.unsqueeze(-1).expand(B, n_unm, K))         # [B, n_unm, K]
+            unm_idx = unm_tokens.reshape(B, n_unm * K).unsqueeze(-1)      # [B, n_unm*K, 1]
+        else:
+            unm_idx = torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
+
+        # 拼接各档 src/dst/merge
+        valid_src   = [x for x in all_src_idx_list   if x is not None]
+        valid_dst   = [x for x in all_dst_idx_list   if x is not None]
+        valid_merge = [x for x in all_merge_idx_list if x is not None]
+
+        src_idx   = torch.cat(valid_src,   dim=1) if valid_src   else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
+        dst_idx   = torch.cat(valid_dst,   dim=1) if valid_dst   else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
+        merge_idx = torch.cat(valid_merge, dim=1) if valid_merge else torch.zeros(B, 0, 1, device=metric.device, dtype=torch.long)
+
+        unm_len = unm_idx.shape[1]
+        src_len = src_idx.shape[1]
+        dst_len = dst_idx.shape[1]
 
         dim_index = src_len
 

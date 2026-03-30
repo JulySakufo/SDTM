@@ -6,7 +6,7 @@ import os
 from tqdm import tqdm
 
 from TR_ToMe import apply_ToMe
-from TR_SDTM import apply_SDTM
+from TR_SDTM_annotation import apply_SDTM
 
 from diffusers import StableDiffusion3Pipeline
 
@@ -115,6 +115,8 @@ def main(args):
                 f"R{args.SDTM_ratio:g}-D{args.SDTM_deviation:g}-Sw{args.SDTM_switch_step}-"
                 f"rnd{int(args.SDTM_use_rand)}-{args.SDTM_sx}x{args.SDTM_sy}-"
                 f"as{args.SDTM_a_s:g}-ad{args.SDTM_a_d:g}-ap{args.SDTM_a_p:g}-"
+                f"Adp{int(args.SDTM_adaptive_ssm)}-Th{args.SDTM_ssm_threshold:g}-"
+                f"L{args.SDTM_low_complexity_threshold:g}-H{args.SDTM_high_complexity_threshold:g}-"
                 f"Pm{'PM' if args.SDTM_pseudo_merge else 'M'}-W{args.SDTM_mcw:g}-"
                 f"Ps{args.SDTM_protect_steps_frequency}-Pl{args.SDTM_protect_layers_frequency}-CES{args.SDTM_cache_each_step}"
             )
@@ -133,6 +135,10 @@ def main(args):
                 a_s=args.SDTM_a_s,
                 a_d=args.SDTM_a_d,
                 a_p=args.SDTM_a_p,
+                adaptive_ssm=args.SDTM_adaptive_ssm,
+                ssm_threshold=args.SDTM_ssm_threshold,
+                low_complexity_threshold=args.SDTM_low_complexity_threshold,
+                high_complexity_threshold=args.SDTM_high_complexity_threshold,
                 pseudo_merge=args.SDTM_pseudo_merge,
                 mcw=args.SDTM_mcw,
                 protect_steps_frequency=args.SDTM_protect_steps_frequency,
@@ -193,11 +199,15 @@ if __name__ == "__main__":
     parser.add_argument("--SDTM-deviation", type=float, default=0.2)
     parser.add_argument("--SDTM-switch-step", type=int, default=20)
     parser.add_argument("--SDTM-use-rand", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--SDTM-sx", type=int, default=2)
-    parser.add_argument("--SDTM-sy", type=int, default=2)
+    parser.add_argument("--SDTM-sx", type=int, default=4)
+    parser.add_argument("--SDTM-sy", type=int, default=4)
     parser.add_argument("--SDTM-a-s", type=float, default=0.05)
     parser.add_argument("--SDTM-a-d", type=float, default=0.05)
     parser.add_argument("--SDTM-a-p", type=float, default=2)
+    parser.add_argument("--SDTM-adaptive-ssm", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--SDTM-ssm-threshold", type=float, default=0.0)
+    parser.add_argument("--SDTM-low-complexity-threshold", type=float, default=0.66)
+    parser.add_argument("--SDTM-high-complexity-threshold", type=float, default=0.33)
     parser.add_argument("--SDTM-pseudo-merge", action=argparse.BooleanOptionalAction, default=False, help="Bind objects together without actual merging.")
     parser.add_argument("--SDTM-mcw", type=float, default=0.1, help="the weight for merge is w, while for cache is 1-w")
     parser.add_argument("--SDTM-protect-steps-frequency", type=int, default=3, help='Frequency for protecting steps')
