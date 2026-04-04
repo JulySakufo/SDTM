@@ -187,11 +187,11 @@ if __name__ == "__main__":
     IMAGE_SETS = {
         "Default": (
             "../../../irip_16t_0/huangyu_2026/samples/"
-            "SD3M-Default-1024x1024-steps50-cfg7.0-seed0"
+            "Default"
         ),
         "ToMe": (
             "../../../irip_16t_0/huangyu_2026/samples/"
-            "SD3M-ToMe-PseudoMerge-0.9-2x2-MergeAttn-UnMergeMLP-1024x1024-steps50-cfg7.0-seed0"
+            "ToMe"
         ),
         "SDTM": (
             "samples/SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-2x2-as0.05-ad0.05-ap2-PmM-"
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         ),
         "Mine": (
             "../../../irip_16t_0/huangyu_2026/samples/"
-            "SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-4x4-as0.05-ad0.05-ap2-Adp0-Th0-L0.66-H0.33-PmM-W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
+            "SSM_Modify_Version1.0"
         )
     }
 
