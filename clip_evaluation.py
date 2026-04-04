@@ -197,6 +197,10 @@ if __name__ == "__main__":
             "samples/SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-2x2-as0.05-ad0.05-ap2-PmM-"
             "W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
         ),
+        "Mine": (
+            "../../../irip_16t_0/huangyu_2026/samples/"
+            "SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-4x4-as0.05-ad0.05-ap2-Adp0-Th0-L0.66-H0.33-PmM-W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
+        )
     }
 
     BATCH_SIZE = 32
