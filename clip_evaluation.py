@@ -186,11 +186,11 @@ if __name__ == "__main__":
     # 三个待评估的图像集合（名称 -> 路径）
     IMAGE_SETS = {
         "Default": (
-            "../../../irip_16t_0/huangyu_2026/samples/"
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
             "Default"
         ),
         "ToMe": (
-            "../../../irip_16t_0/huangyu_2026/samples/"
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
             "ToMe"
         ),
         "SDTM": (
@@ -198,7 +198,7 @@ if __name__ == "__main__":
             "W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
         ),
         "Mine": (
-            "../../../irip_16t_0/huangyu_2026/samples/"
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
             "SSM_Modify_Version1.0"
         )
     }

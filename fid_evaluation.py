@@ -29,9 +29,9 @@ def compute_fid(real_path, fake_path):
 if __name__ == "__main__":
     real_images_path = "datasets/val2017"
     sdtm_images_path = "samples/SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-2x2-as0.05-ad0.05-ap2-PmM-W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
-    default_images_path = "../../../irip_16t_0/huangyu_2026/samples/Default"
-    tome_images_path = "../../../irip_16t_0/huangyu_2026/samples/ToMe"
-    mine_images_path = "../../../irip_16t_0/huangyu_2026/samples/SSM_Modify_Version1.0"
+    default_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/Default"
+    tome_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/ToMe"
+    mine_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/SSM_Modify_Version1.0"
     default_fid_score = compute_fid(real_images_path, default_images_path)
     sdtm_fid_score = compute_fid(real_images_path, sdtm_images_path)
     tome_fid_score = compute_fid(real_images_path, tome_images_path)

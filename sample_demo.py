@@ -20,8 +20,8 @@ def sanitize_filename(text: str, max_len: int = 60) -> str:
 
 
 def main(args):
-    # Device
-    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    # Device 原来是4张gpu，现在改成单gpu，自动选择cuda:0或cpu
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     # Load pipeline
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         default="Ma motorcycle parked on the gravel in front of a garage",
         help="Single text prompt to generate an image",
     )
-    parser.add_argument("--model-path", type=str, default="../../checkpoints/StableDiffusion/stable-diffusion-3-medium-diffusers")
+    parser.add_argument("--model-path", type=str, default="checkpoints/StableDiffusion/stable-diffusion-3-medium-diffusers")
     parser.add_argument("--torch-dtype", type=str, default="float16", choices=["float32", "float16"])
     parser.add_argument("--height", type=int, default=1024)
     parser.add_argument("--width", type=int, default=1024)
