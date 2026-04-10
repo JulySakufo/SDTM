@@ -32,11 +32,14 @@ if __name__ == "__main__":
     default_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/Default"
     tome_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/ToMe"
     mine_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/SSM_Modify_Version1.0"
+    sdtm_taylorseer_images_path = "../../../irip_16t_0/huangyu_2026/samples/COCO2017/SDTM_TaylorSeer"
     default_fid_score = compute_fid(real_images_path, default_images_path)
     sdtm_fid_score = compute_fid(real_images_path, sdtm_images_path)
     tome_fid_score = compute_fid(real_images_path, tome_images_path)
     mine_fid_score = compute_fid(real_images_path, mine_images_path)
+    sdtm_taylorseer_fid_score = compute_fid(real_images_path, sdtm_taylorseer_images_path)
     print(f"Default FID Score: {default_fid_score}")
     print(f"SDTM FID Score: {sdtm_fid_score}")
     print(f"ToMe FID Score: {tome_fid_score}")
     print(f"Mine FID Score: {mine_fid_score}")
+    print(f"SDTM TaylorSeer FID Score: {sdtm_taylorseer_fid_score}")

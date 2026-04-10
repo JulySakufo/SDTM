@@ -200,6 +200,10 @@ if __name__ == "__main__":
         "Mine": (
             "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
             "SSM_Modify_Version1.0"
+        ),
+        "SDTM_TaylorSeer": (
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+            "SDTM_TaylorSeer"
         )
     }
 
