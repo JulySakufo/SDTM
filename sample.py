@@ -179,24 +179,60 @@ def main(args):
 
     print(f"Output path: {output_path}")
 
+    # Warmup
+    print("\n---Warming up the model---")
+    warmup_prompt = "A photo of a cat"
+    for _ in range(5):
+        with torch.no_grad():
+            _ = pipe(
+                prompt=warmup_prompt,
+                generator=generator,
+                height=args.height,
+                width=args.width,
+                num_inference_steps=args.num_inference_steps,
+                guidance_scale=args.guidance_scale,
+            ).images
+    torch.cuda.empty_cache()  # Clear GPU cache after warmup inference
+    torch.cuda.synchronize(device)  # Ensure all GPU operations are complete before proceeding
+    print("---Warmup Completed---\n")
+
+    time_sum = 0
     for i in tqdm(range(0, len(captions_list), batch_size), desc="Generating images"):
         batch_captions = captions_list[i: i + batch_size]
         prompt_list = [item['caption'] for item in batch_captions]
         id_list = [item['image_id'] for item in batch_captions]
 
-        images = pipe(
-            prompt=prompt_list,
-            generator=generator,
-            height=args.height,
-            width=args.width,
-            num_inference_steps=args.num_inference_steps,
-            guidance_scale=args.guidance_scale,
-        ).images
+        # 计时开始
+        torch.cuda.synchronize(device)  # Ensure all previous GPU operations are complete before timing
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+
+        with torch.no_grad():
+            images = pipe(
+                prompt=prompt_list,
+                generator=generator,
+                height=args.height,
+                width=args.width,
+                num_inference_steps=args.num_inference_steps,
+                guidance_scale=args.guidance_scale,
+            ).images
+
+        end.record()
+        torch.cuda.synchronize(device)  # Wait for the events to be recorded
+        elapsed_time = start.elapsed_time(end) / 1000  # Convert milliseconds to seconds
+        time_sum += elapsed_time
+        torch.cuda.empty_cache()  # Clear GPU cache after each batch
+        # 计时结束
+
+        print(f"Batch {i // batch_size + 1}: Generated {len(images)} images in {elapsed_time:.2f} seconds.")
 
         for j, image in enumerate(images):
             image_id = id_list[j]
             image_id = str(image_id).zfill(12)
             image.save(os.path.join(output_path, f"{image_id}.jpg"))
+    print(f"Total generation time: {time_sum:.2f} seconds for {len(captions_list)} images. "
+          f"Average time per image: {time_sum / len(captions_list):.2f} seconds.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -210,7 +246,7 @@ if __name__ == "__main__":
     parser.add_argument("--width", type=int, default=1024)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--guidance-scale", type=float, default=7.0)
-    parser.add_argument("--batch-size", type=int, default=2)
+    parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--tore-type", type=str, choices=["Default", "ToMe", "SDTM", "SDTM_TaylorSeer"], default="SDTM")
     
