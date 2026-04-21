@@ -62,8 +62,8 @@ class CLIPScoreEvaluator:
 
     def __init__(
         self,
-        model_path: str = "clip_models/ViT-L-14-openai.pt",
-        model_name: str = "ViT-L-14",
+        model_path: str = "clip_models/ViT-G-14.pt",
+        model_name: str = "ViT-g-14",
         device: str = "cuda",
     ):
         self.device = device
@@ -181,7 +181,7 @@ class CLIPScoreEvaluator:
 if __name__ == "__main__":
     # ── 路径配置 ──────────────────────────────
     CAPTIONS_FILE = "datasets/COCO2017/captions_val2017.json"
-    CLIP_MODEL_PATH = "clip_models/ViT-L-14-openai.pt"
+    CLIP_MODEL_PATH = "clip_models/ViT-G-14.pt"
 
     # 三个待评估的图像集合（名称 -> 路径）
     IMAGE_SETS = {
@@ -201,10 +201,34 @@ if __name__ == "__main__":
             "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
             "SSM_Modify_Version1.0"
         ),
-        "SDTM_TaylorSeer": (
+        "Mine2": (
             "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-            "SDTM_TaylorSeer"
-        )
+            "SSM+IDM_Version1.0"
+        ),
+        "Mine2_2": (
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+            "SSM+IDM_Version1.0_2"
+        ),
+        # "SDTM_TaylorSeer": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SDTM_TaylorSeer"
+        # ),
+        # "SDTM_TaylorSeer_1_1_5": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SDTM_TaylorSeer_1_1_5"
+        # ),
+        # "SDTM_TaylorSeer_2_1_12": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SDTM_TaylorSeer_2_1_12"
+        # ),
+        # "SDTM_TaylorSeer_3_1_5": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SDTM_TaylorSeer_3_1_5"
+        # ),
+        # "SDTM_TaylorSeer_4_1_3": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SDTM_TaylorSeer_4_1_3"
+        # )
     }
 
     BATCH_SIZE = 32
@@ -217,7 +241,7 @@ if __name__ == "__main__":
 
     evaluator = CLIPScoreEvaluator(
         model_path=CLIP_MODEL_PATH,
-        model_name="ViT-L-14",
+        model_name="ViT-g-14",
         device=DEVICE,
     )
 

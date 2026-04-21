@@ -44,8 +44,8 @@ class CLIPScoreEvaluator:
 
     def __init__(
         self,
-        model_path: str = "../clip_models/ViT-L-14-openai.pt",
-        model_name: str = "ViT-L-14",
+        model_path: str = "../clip_models/ViT-G-14-openai.pt",
+        model_name: str = "ViT-g-14",
         device: str = "cuda",
     ):
         self.device = device
@@ -140,25 +140,29 @@ class CLIPScoreEvaluator:
 if __name__ == "__main__":
 
     PARTI_FILE = "../datasets/PartiPrompts/PartiPrompts.tsv"
-    CLIP_MODEL_PATH = "../clip_models/ViT-L-14-openai.pt"
+    CLIP_MODEL_PATH = "../clip_models/ViT-G-14.pt"
 
     IMAGE_SETS = {
         "Default": (
-            "../../../../irip_16t_0/huangyu_2026/samples/"
+            "../../../../irip_16t_0/huangyu_2026/samples/PartiPrompts/"
             "Default"
         ),
         "ToMe": (
-            "../../../../irip_16t_0/huangyu_2026/samples/"
+            "../../../../irip_16t_0/huangyu_2026/samples/PartiPrompts/"
             "ToMe"
         ),
         "SDTM": (
-            "../samples/SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-2x2-as0.05-ad0.05-ap2-PmM-"
-            "W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
+            "../../../../irip_16t_0/huangyu_2026/samples/PartiPrompts/"
+            "SDTM"
         ),
         "Mine": (
-            "../../../../irip_16t_0/huangyu_2026/samples/"
+            "../../../../irip_16t_0/huangyu_2026/samples/PartiPrompts/"
             "SSM_Modify_Version1.0"
-        )
+        ),
+        "Mine2": (
+            "../../../../irip_16t_0/huangyu_2026/samples/PartiPrompts/"
+            "SSM+IDM_Version1.0"
+        ),
     }
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -167,7 +171,7 @@ if __name__ == "__main__":
 
     evaluator = CLIPScoreEvaluator(
         model_path=CLIP_MODEL_PATH,
-        model_name="ViT-L-14",
+        model_name="ViT-g-14",
         device=DEVICE,
     )
 
