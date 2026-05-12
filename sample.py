@@ -67,7 +67,8 @@ def main(args):
         pipe = StableDiffusion3Pipeline.from_pretrained(args.model_path, torch_dtype=torch.float16)
     
     pipe = pipe.to(device)
-
+    # -----启用xformers-----
+    pipe.enable_xformers_memory_efficient_attention()
     # Construct output path
     # Extract and simplify model name
     model_name = os.path.basename(args.model_path)
