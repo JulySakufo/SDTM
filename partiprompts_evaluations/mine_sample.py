@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("--width", type=int, default=1024)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--guidance-scale", type=float, default=7.0)
-    parser.add_argument("--batch-size", type=int, default=2)
+    parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--tore-type", type=str, choices=["Default", "ToMe", "SDTM"], default="SDTM")
     

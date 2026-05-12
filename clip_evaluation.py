@@ -185,30 +185,34 @@ if __name__ == "__main__":
 
     # 三个待评估的图像集合（名称 -> 路径）
     IMAGE_SETS = {
-        "Default": (
-            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-            "Default"
-        ),
-        "ToMe": (
-            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-            "ToMe"
-        ),
-        "SDTM": (
-            "samples/SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-2x2-as0.05-ad0.05-ap2-PmM-"
-            "W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
-        ),
-        "Mine": (
-            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-            "SSM_Modify_Version1.0"
-        ),
-        "Mine2": (
-            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-            "SSM+IDM_Version1.0"
-        ),
-        "Mine2_2": (
-            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-            "SSM+IDM_Version1.0_2"
-        ),
+        # "Default": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "Default"
+        # ),
+        # "TaylorSeer_Only_4_2_2":(
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "TaylorSeer_Only_4_2_2"
+        # ),
+        # "ToMe": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "ToMe"
+        # ),
+        # "SDTM": (
+        #     "samples/SD3M-SDTM-R0.3-D0.2-Sw20-rnd1-2x2-as0.05-ad0.05-ap2-PmM-"
+        #     "W0.1-Ps3-Pl-1-CESTrue-1024x1024-steps50-cfg7.0-seed0"
+        # ),
+        # "Mine": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SSM_Modify_Version1.0"
+        # ),
+        # "Mine2": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SSM+IDM_Version1.0"
+        # ),
+        # "Mine2_2": (
+        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+        #     "SSM+IDM_Version1.0_2"
+        # ),
         # "SDTM_TaylorSeer": (
         #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
         #     "SDTM_TaylorSeer"
@@ -217,10 +221,10 @@ if __name__ == "__main__":
         #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
         #     "SDTM_TaylorSeer_1_1_5"
         # ),
-        # "SDTM_TaylorSeer_2_1_12": (
-        #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
-        #     "SDTM_TaylorSeer_2_1_12"
-        # ),
+        "SDTM_TaylorSeer_2_1_12": (
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+            "SDTM_TaylorSeer_2_1_12"
+        ),
         # "SDTM_TaylorSeer_3_1_5": (
         #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
         #     "SDTM_TaylorSeer_3_1_5"
@@ -229,6 +233,10 @@ if __name__ == "__main__":
         #     "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
         #     "SDTM_TaylorSeer_4_1_3"
         # )
+        "TaylorSeer_Only_2_1_12": (
+            "../../../irip_16t_0/huangyu_2026/samples/COCO2017/"
+            "TaylorSeer_Only_2_1_12"
+        ),
     }
 
     BATCH_SIZE = 32

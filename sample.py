@@ -182,7 +182,7 @@ def main(args):
     # Warmup
     print("\n---Warming up the model---")
     warmup_prompt = "A photo of a cat"
-    for _ in range(5):
+    for _ in range(10):
         with torch.no_grad():
             _ = pipe(
                 prompt=warmup_prompt,
@@ -196,17 +196,75 @@ def main(args):
     torch.cuda.synchronize(device)  # Ensure all GPU operations are complete before proceeding
     print("---Warmup Completed---\n")
 
-    time_sum = 0
+    # 用 CUDA Event 分别对三部分计时：Text Encoders / Transformer / VAE Decoder
+    # SD3M text-to-image 推理流程：
+    #   Text Encoders (CLIP-L + CLIP-G + T5) → Transformer 去噪 → VAE Decoder
+    # 注意：pipe.vae.encoder 是 img2img 才用的，text-to-image 不会调用，不在此测量。
+    def _make_hook_pair(start_list, end_list):
+        def pre_hook(module, args, kwargs):
+            evt = torch.cuda.Event(enable_timing=True)
+            evt.record()
+            start_list.append(evt)
+        def post_hook(module, args, kwargs, output):
+            evt = torch.cuda.Event(enable_timing=True)
+            evt.record()
+            end_list.append(evt)
+        return pre_hook, post_hook
+
+    def _sum_events(starts, ends):
+        assert len(starts) == len(ends), "pre/post hook count mismatch"
+        return sum(s.elapsed_time(e) for s, e in zip(starts, ends)) / 1000  # ms -> s
+
+    te1_starts, te1_ends = [], []   # CLIP-L
+    te2_starts, te2_ends = [], []   # CLIP-G
+    te3_starts, te3_ends = [], []   # T5-XXL
+    tf_starts,  tf_ends  = [], []   # Transformer
+    dec_starts, dec_ends = [], []   # VAE Decoder
+
+    te1_pre, te1_post = _make_hook_pair(te1_starts, te1_ends)
+    te2_pre, te2_post = _make_hook_pair(te2_starts, te2_ends)
+    te3_pre, te3_post = _make_hook_pair(te3_starts, te3_ends)
+    tf_pre,  tf_post  = _make_hook_pair(tf_starts,  tf_ends)
+    dec_pre, dec_post = _make_hook_pair(dec_starts, dec_ends)
+
+    hooks = [
+        pipe.transformer.register_forward_pre_hook(tf_pre,  with_kwargs=True),
+        pipe.transformer.register_forward_hook(tf_post,     with_kwargs=True),
+        pipe.vae.decoder.register_forward_pre_hook(dec_pre, with_kwargs=True),
+        pipe.vae.decoder.register_forward_hook(dec_post,    with_kwargs=True),
+    ]
+    # 文本编码器可能被设为 None 以节省显存，需判断后再挂 hook
+    if pipe.text_encoder is not None:
+        hooks += [
+            pipe.text_encoder.register_forward_pre_hook(te1_pre,  with_kwargs=True),
+            pipe.text_encoder.register_forward_hook(te1_post,     with_kwargs=True),
+        ]
+    if pipe.text_encoder_2 is not None:
+        hooks += [
+            pipe.text_encoder_2.register_forward_pre_hook(te2_pre, with_kwargs=True),
+            pipe.text_encoder_2.register_forward_hook(te2_post,    with_kwargs=True),
+        ]
+    if pipe.text_encoder_3 is not None:
+        hooks += [
+            pipe.text_encoder_3.register_forward_pre_hook(te3_pre, with_kwargs=True),
+            pipe.text_encoder_3.register_forward_hook(te3_post,    with_kwargs=True),
+        ]
+
+    time_sum_te  = 0.0
+    time_sum_tf  = 0.0
+    time_sum_dec = 0.0
+
     for i in tqdm(range(0, len(captions_list), batch_size), desc="Generating images"):
         batch_captions = captions_list[i: i + batch_size]
         prompt_list = [item['caption'] for item in batch_captions]
         id_list = [item['image_id'] for item in batch_captions]
 
-        # 计时开始
-        torch.cuda.synchronize(device)  # Ensure all previous GPU operations are complete before timing
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
-        start.record()
+        # 清空上一个 batch 的 event 列表
+        te1_starts.clear(); te1_ends.clear()
+        te2_starts.clear(); te2_ends.clear()
+        te3_starts.clear(); te3_ends.clear()
+        tf_starts.clear();  tf_ends.clear()
+        dec_starts.clear(); dec_ends.clear()
 
         with torch.no_grad():
             images = pipe(
@@ -218,21 +276,45 @@ def main(args):
                 guidance_scale=args.guidance_scale,
             ).images
 
-        end.record()
-        torch.cuda.synchronize(device)  # Wait for the events to be recorded
-        elapsed_time = start.elapsed_time(end) / 1000  # Convert milliseconds to seconds
-        time_sum += elapsed_time
-        torch.cuda.empty_cache()  # Clear GPU cache after each batch
-        # 计时结束
+        torch.cuda.synchronize(device)
 
-        print(f"Batch {i // batch_size + 1}: Generated {len(images)} images in {elapsed_time:.2f} seconds.")
+        t_te1 = _sum_events(te1_starts, te1_ends)
+        t_te2 = _sum_events(te2_starts, te2_ends)
+        t_te3 = _sum_events(te3_starts, te3_ends)
+        t_te  = t_te1 + t_te2 + t_te3
+        t_tf  = _sum_events(tf_starts,  tf_ends)
+        t_dec = _sum_events(dec_starts, dec_ends)
+
+        time_sum_te  += t_te
+        time_sum_tf  += t_tf
+        time_sum_dec += t_dec
+
+        torch.cuda.empty_cache()
+
+        print(f"Batch {i // batch_size + 1}: {len(images)} images | "
+              f"TextEnc(CLIP-L/CLIP-G/T5): {t_te1:.3f}s / {t_te2:.3f}s / {t_te3:.3f}s  "
+              f"Transformer: {t_tf:.3f}s ({len(tf_starts)} steps)  "
+              f"VAE Decoder: {t_dec:.3f}s")
 
         for j, image in enumerate(images):
             image_id = id_list[j]
             image_id = str(image_id).zfill(12)
             image.save(os.path.join(output_path, f"{image_id}.jpg"))
-    print(f"Total generation time: {time_sum:.2f} seconds for {len(captions_list)} images. "
-          f"Average time per image: {time_sum / len(captions_list):.2f} seconds.")
+
+    # 移除所有 hook，避免影响后续调用
+    for h in hooks:
+        h.remove()
+
+    n = len(captions_list)
+    time_sum = time_sum_te + time_sum_tf + time_sum_dec
+    print(
+        f"\n===== Timing Summary ({n} images) =====\n"
+        f"  Text Encoders: {time_sum_te:.2f}s  (avg {time_sum_te/n:.3f}s/img)\n"
+        f"  Transformer  : {time_sum_tf:.2f}s  (avg {time_sum_tf/n:.3f}s/img)\n"
+        f"  VAE Decoder  : {time_sum_dec:.2f}s  (avg {time_sum_dec/n:.3f}s/img)\n"
+        f"  Total (3 parts): {time_sum:.2f}s  (avg {time_sum/n:.3f}s/img)\n"
+        f"======================================="
+    )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -251,7 +333,7 @@ if __name__ == "__main__":
     parser.add_argument("--tore-type", type=str, choices=["Default", "ToMe", "SDTM", "SDTM_TaylorSeer"], default="SDTM")
     
     # Additional ToMe arguments
-    parser.add_argument("--ToMe-ratio", type=float, default=0.9)
+    parser.add_argument("--ToMe-ratio", type=float, default=0.1)
     parser.add_argument("--ToMe-sx", type=int, default=2)
     parser.add_argument("--ToMe-sy", type=int, default=2)
     parser.add_argument("--ToMe-use-rand", action=argparse.BooleanOptionalAction, default=True)
@@ -276,8 +358,8 @@ if __name__ == "__main__":
     parser.add_argument("--SDTM-cache_each_step", action=argparse.BooleanOptionalAction, default=True, help="Bind objects together without actual merging.")
 
     # Additional TaylorSeer arguments (used with SDTM_TaylorSeer)
-    parser.add_argument("--Taylor-interval", type=int, default=2, help="TaylorSeer caching interval: run full computation every N steps")
-    parser.add_argument("--Taylor-max-order", type=int, default=1, help="Max order of Taylor expansion for derivative approximation")
-    parser.add_argument("--Taylor-first-enhance", type=int, default=12, help="Number of initial/final steps forced to full computation")
+    parser.add_argument("--Taylor-interval", type=int, default=4, help="TaylorSeer caching interval: run full computation every N steps")
+    parser.add_argument("--Taylor-max-order", type=int, default=2, help="Max order of Taylor expansion for derivative approximation")
+    parser.add_argument("--Taylor-first-enhance", type=int, default=2, help="Number of initial/final steps forced to full computation")
     args = parser.parse_args()
     main(args)

@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from TR_ToMe import apply_ToMe
 from TR_SDTM import apply_SDTM
+from TR_SDTM_TaylorSeer import apply_SDTM_TaylorSeer
 
 from diffusers import StableDiffusion3Pipeline
 
@@ -123,6 +124,40 @@ def main(args):
                 protect_layers_frequency=args.SDTM_protect_layers_frequency,
             )
 
+    elif args.tore_type == "SDTM_TaylorSeer":
+            sdtm_ts_tag = (
+                f"{model_name}-SDTM_TaylorSeer-"
+                f"R{args.SDTM_ratio:g}-D{args.SDTM_deviation:g}-Sw{args.SDTM_switch_step}-"
+                f"rnd{int(args.SDTM_use_rand)}-{args.SDTM_sx}x{args.SDTM_sy}-"
+                f"as{args.SDTM_a_s:g}-ad{args.SDTM_a_d:g}-ap{args.SDTM_a_p:g}-"
+                f"Pm{'PM' if args.SDTM_pseudo_merge else 'M'}-W{args.SDTM_mcw:g}-"
+                f"Ps{args.SDTM_protect_steps_frequency}-Pl{args.SDTM_protect_layers_frequency}-"
+                f"TI{args.Taylor_interval}-TO{args.Taylor_max_order}-TE{args.Taylor_first_enhance}"
+            )
+            output_path = os.path.join(
+                args.output_path,
+                f"{sdtm_ts_tag}-{args.height}x{args.width}-steps{args.num_inference_steps}-cfg{args.guidance_scale}-seed{args.seed}"
+            )
+            apply_SDTM_TaylorSeer(
+                pipe,
+                ratio=args.SDTM_ratio,
+                deviation=args.SDTM_deviation,
+                switch_step=args.SDTM_switch_step,
+                use_rand=args.SDTM_use_rand,
+                sx=args.SDTM_sx,
+                sy=args.SDTM_sy,
+                a_s=args.SDTM_a_s,
+                a_d=args.SDTM_a_d,
+                a_p=args.SDTM_a_p,
+                pseudo_merge=args.SDTM_pseudo_merge,
+                mcw=args.SDTM_mcw,
+                protect_steps_frequency=args.SDTM_protect_steps_frequency,
+                protect_layers_frequency=args.SDTM_protect_layers_frequency,
+                taylor_interval=args.Taylor_interval,
+                taylor_max_order=args.Taylor_max_order,
+                taylor_first_enhance=args.Taylor_first_enhance,
+            )
+
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
@@ -150,16 +185,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--caption-path", type=str, default='../datasets/PartiPrompts/PartiPrompts.tsv')
     # 学长让先换到irip_16t_0
-    parser.add_argument("--output-path", type=str, default="../../../irip_16t_0/huangyu_2026/samples/PartiPrompts")
+    parser.add_argument("--output-path", type=str, default="../../../../irip_16t_0/huangyu_2026/samples/PartiPrompts")
     parser.add_argument("--model-path", type=str, default="../checkpoints/StableDiffusion/stable-diffusion-3-medium-diffusers")
     parser.add_argument("--torch-dtype", type=str, default="float16")
     parser.add_argument("--height", type=int, default=1024)
     parser.add_argument("--width", type=int, default=1024)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--guidance-scale", type=float, default=7.0)
-    parser.add_argument("--batch-size", type=int, default=2)
+    parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--tore-type", type=str, choices=["Default", "ToMe", "SDTM"], default="SDTM")
+    parser.add_argument("--tore-type", type=str, choices=["Default", "ToMe", "SDTM", "SDTM_TaylorSeer"], default="SDTM")
     
     # Additional ToMe arguments
     parser.add_argument("--ToMe-ratio", type=float, default=0.9)
@@ -185,5 +220,10 @@ if __name__ == "__main__":
     parser.add_argument("--SDTM-protect-steps-frequency", type=int, default=3, help='Frequency for protecting steps')
     parser.add_argument("--SDTM-protect-layers-frequency", type=int, default=-1, help='Frequency for protecting layers')
     parser.add_argument("--SDTM-cache_each_step", action=argparse.BooleanOptionalAction, default=True, help="Bind objects together without actual merging.")
+
+    # Additional TaylorSeer arguments (used with SDTM_TaylorSeer)
+    parser.add_argument("--Taylor-interval", type=int, default=2, help="TaylorSeer caching interval: run full computation every N steps")
+    parser.add_argument("--Taylor-max-order", type=int, default=1, help="Max order of Taylor expansion for derivative approximation")
+    parser.add_argument("--Taylor-first-enhance", type=int, default=12, help="Number of initial/final steps forced to full computation")
     args = parser.parse_args()
     main(args)
