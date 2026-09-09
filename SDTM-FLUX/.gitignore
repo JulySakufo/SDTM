@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+samples/
+flops_flux.json
+clip_scores_flux.json
+fid_scores_flux.json
+tests

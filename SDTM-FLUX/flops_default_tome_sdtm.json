@@ -1,0 +1,1703 @@
+{
+  "configuration": {
+    "model_path": "/irip/huangyu_2026/models/FLUX.1-dev",
+    "height": 1024,
+    "width": 1024,
+    "steps": 50,
+    "batch_size": 1,
+    "dtype": "bfloat16",
+    "counted_region": "FluxTransformer2DModel only",
+    "modes": [
+      "Default",
+      "ToMe",
+      "SDTM"
+    ],
+    "parameters": {
+      "caption_path": "/irip/huangyu_2026/SDTM/datasets/COCO2017/captions_val2017.json",
+      "output_path": "../../../../irip_16t_0/huangyu_2026/samples",
+      "experiment_name": null,
+      "model_path": "/irip/huangyu_2026/models/FLUX.1-dev",
+      "torch_dtype": "bfloat16",
+      "device": "cuda:0",
+      "cpu_offload": false,
+      "local_files_only": true,
+      "height": 1024,
+      "width": 1024,
+      "num_inference_steps": 50,
+      "guidance_scale": 3.5,
+      "max_sequence_length": 512,
+      "batch_size": 1,
+      "seed": 0,
+      "tore_type": "SDTM",
+      "limit": null,
+      "skip_existing": true,
+      "warmup_runs": 0,
+      "show_pipeline_progress": false,
+      "ToMe_ratio": 0.9,
+      "ToMe_sx": 2,
+      "ToMe_sy": 2,
+      "ToMe_use_rand": true,
+      "ToMe_merge_attn": true,
+      "ToMe_merge_mlp": false,
+      "ToMe_pseudo_merge": true,
+      "SDTM_ratio": 0.3,
+      "SDTM_deviation": 0.2,
+      "SDTM_switch_step": 20,
+      "SDTM_use_rand": true,
+      "SDTM_sx": 2,
+      "SDTM_sy": 2,
+      "SDTM_a_s": 0.05,
+      "SDTM_a_d": 0.05,
+      "SDTM_a_p": 2.0,
+      "SDTM_adaptive_ssm": false,
+      "SDTM_ssm_threshold": 0.0,
+      "SDTM_low_complexity_threshold": 0.66,
+      "SDTM_high_complexity_threshold": 0.33,
+      "SDTM_pseudo_merge": false,
+      "SDTM_mcw": 0.1,
+      "SDTM_protect_steps_frequency": 3,
+      "SDTM_protect_layers_frequency": -1,
+      "SDTM_cache_each_step": true,
+      "SDTM_slic_alpha": 0.5,
+      "Taylor_interval": 2,
+      "Taylor_max_order": 1,
+      "Taylor_first_enhance": 12,
+      "modes": "Default,ToMe,SDTM",
+      "prompt": "A photo of a cat",
+      "output_json": "flops_default_tome_sdtm.json"
+    }
+  },
+  "results": [
+    {
+      "mode": "Default",
+      "num_transformer_calls": 50,
+      "hidden_states_shape": [
+        1,
+        4096,
+        64
+      ],
+      "encoder_hidden_states_shape": [
+        1,
+        512,
+        4096
+      ],
+      "total_flops": 3719232670924800,
+      "average_flops_per_step": 74384653418496.0,
+      "total_flops_per_image": 3719232670924800.0,
+      "patch": {
+        "patched": false
+      },
+      "by_operator": {
+        "aten.addmm": 2975612770713600,
+        "aten._scaled_dot_product_efficient_attention": 743619900211200
+      },
+      "steps": [
+        {
+          "call_index": 0,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 1,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 2,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 3,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 4,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 5,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 6,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 7,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 8,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 9,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 10,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 11,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 12,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 13,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 14,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 15,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 16,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 17,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 18,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 19,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 20,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 21,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 22,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 23,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 24,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 25,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 26,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 27,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 28,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 29,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 30,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 31,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 32,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 33,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 34,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 35,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 36,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 37,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 38,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 39,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 40,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 41,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 42,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 43,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 44,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 45,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 46,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 47,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 48,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        },
+        {
+          "call_index": 49,
+          "kind": "full",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 59512255414272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224
+          }
+        }
+      ]
+    },
+    {
+      "mode": "ToMe",
+      "num_transformer_calls": 50,
+      "hidden_states_shape": [
+        1,
+        4096,
+        64
+      ],
+      "encoder_hidden_states_shape": [
+        1,
+        512,
+        4096
+      ],
+      "total_flops": 3564751159296000,
+      "average_flops_per_step": 71295023185920.0,
+      "total_flops_per_image": 3564751159296000.0,
+      "patch": {
+        "patched": true,
+        "method": "ToMe",
+        "variant": "tome",
+        "double_layers": 19,
+        "single_layers": 38,
+        "executed_double_blocks": 950,
+        "executed_single_blocks": 1900,
+        "step": 49,
+        "taylor_type": "full"
+      },
+      "by_operator": {
+        "aten.addmm": 2077645838745600,
+        "aten.mm": 811899813888000,
+        "aten._scaled_dot_product_efficient_attention": 620122551091200,
+        "aten.bmm": 55082955571200
+      },
+      "steps": [
+        {
+          "call_index": 0,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 1,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 2,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 3,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 4,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 5,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 6,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 7,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 8,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 9,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 10,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 11,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 12,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 13,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 14,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 15,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 16,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 17,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 18,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 19,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 20,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 21,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 22,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 23,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 24,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 25,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 26,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 27,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 28,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 29,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 30,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 31,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 32,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 33,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 34,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 35,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 36,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 37,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 38,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 39,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 40,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 41,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 42,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 43,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 44,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 45,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 46,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 47,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 48,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        },
+        {
+          "call_index": 49,
+          "kind": "ToMe",
+          "flops": 71295023185920,
+          "by_operator": {
+            "aten.addmm": 41552916774912,
+            "aten.bmm": 1101659111424,
+            "aten._scaled_dot_product_efficient_attention": 12402451021824,
+            "aten.mm": 16237996277760
+          }
+        }
+      ]
+    },
+    {
+      "mode": "SDTM",
+      "num_transformer_calls": 50,
+      "hidden_states_shape": [
+        1,
+        4096,
+        64
+      ],
+      "encoder_hidden_states_shape": [
+        1,
+        512,
+        4096
+      ],
+      "total_flops": 3078846785875968,
+      "average_flops_per_step": 61576935717519.36,
+      "total_flops_per_image": 3078846785875968.0,
+      "patch": {
+        "patched": true,
+        "method": "SDTM",
+        "variant": "basic",
+        "double_layers": 19,
+        "single_layers": 38,
+        "executed_double_blocks": 950,
+        "executed_single_blocks": 1900,
+        "step": 49,
+        "taylor_type": "full"
+      },
+      "by_operator": {
+        "aten.addmm": 1780750859894784,
+        "aten.mm": 670941239574528,
+        "aten._scaled_dot_product_efficient_attention": 606062504669184,
+        "aten.bmm": 21092181737472
+      },
+      "steps": [
+        {
+          "call_index": 0,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 1,
+          "kind": "SDTM",
+          "flops": 37707153850368,
+          "by_operator": {
+            "aten.addmm": 23910592020480,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4597421359104,
+            "aten.mm": 9187664855040
+          }
+        },
+        {
+          "call_index": 2,
+          "kind": "SDTM",
+          "flops": 37756657152000,
+          "by_operator": {
+            "aten.addmm": 23938563833856,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4608194457600,
+            "aten.mm": 9198423244800
+          }
+        },
+        {
+          "call_index": 3,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 4,
+          "kind": "SDTM",
+          "flops": 37905242701824,
+          "by_operator": {
+            "aten.addmm": 24022479273984,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4640589398016,
+            "aten.mm": 9230698414080
+          }
+        },
+        {
+          "call_index": 5,
+          "kind": "SDTM",
+          "flops": 38053941719040,
+          "by_operator": {
+            "aten.addmm": 24106394714112,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4673097805824,
+            "aten.mm": 9262973583360
+          }
+        },
+        {
+          "call_index": 6,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 7,
+          "kind": "SDTM",
+          "flops": 38401347354624,
+          "by_operator": {
+            "aten.addmm": 24302197407744,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4749392019456,
+            "aten.mm": 9338282311680
+          }
+        },
+        {
+          "call_index": 8,
+          "kind": "SDTM",
+          "flops": 38600142225408,
+          "by_operator": {
+            "aten.addmm": 24414084661248,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4793266077696,
+            "aten.mm": 9381315870720
+          }
+        },
+        {
+          "call_index": 9,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 10,
+          "kind": "SDTM",
+          "flops": 39098011926528,
+          "by_operator": {
+            "aten.addmm": 24693802795008,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4903833747456,
+            "aten.mm": 9488899768320
+          }
+        },
+        {
+          "call_index": 11,
+          "kind": "SDTM",
+          "flops": 39347419557888,
+          "by_operator": {
+            "aten.addmm": 24833661861888,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 4959590363136,
+            "aten.mm": 9542691717120
+          }
+        },
+        {
+          "call_index": 12,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 13,
+          "kind": "SDTM",
+          "flops": 40047437721600,
+          "by_operator": {
+            "aten.addmm": 25225267249152,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 5117385682944,
+            "aten.mm": 9693309173760
+          }
+        },
+        {
+          "call_index": 14,
+          "kind": "SDTM",
+          "flops": 40398373453824,
+          "by_operator": {
+            "aten.addmm": 25421069942784,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 5197209993216,
+            "aten.mm": 9768617902080
+          }
+        },
+        {
+          "call_index": 15,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 16,
+          "kind": "SDTM",
+          "flops": 41202832048128,
+          "by_operator": {
+            "aten.addmm": 25868618956800,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 5381985337344,
+            "aten.mm": 9940752138240
+          }
+        },
+        {
+          "call_index": 17,
+          "kind": "SDTM",
+          "flops": 41656758349824,
+          "by_operator": {
+            "aten.addmm": 26120365277184,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 5487339810816,
+            "aten.mm": 10037577646080
+          }
+        },
+        {
+          "call_index": 18,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 19,
+          "kind": "SDTM",
+          "flops": 42618400800768,
+          "by_operator": {
+            "aten.addmm": 26651829731328,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 5713108402176,
+            "aten.mm": 10241987051520
+          }
+        },
+        {
+          "call_index": 20,
+          "kind": "SDTM",
+          "flops": 43126356492288,
+          "by_operator": {
+            "aten.addmm": 26931547865088,
+            "aten.bmm": 11475615744,
+            "aten._scaled_dot_product_efficient_attention": 5833762062336,
+            "aten.mm": 10349570949120
+          }
+        },
+        {
+          "call_index": 21,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 22,
+          "kind": "SDTM",
+          "flops": 61302451470336,
+          "by_operator": {
+            "aten.addmm": 33531461369856,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 11796932984832
+          }
+        },
+        {
+          "call_index": 23,
+          "kind": "SDTM",
+          "flops": 61577866248192,
+          "by_operator": {
+            "aten.addmm": 33715071221760,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 11888737910784
+          }
+        },
+        {
+          "call_index": 24,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 25,
+          "kind": "SDTM",
+          "flops": 62266403192832,
+          "by_operator": {
+            "aten.addmm": 34174095851520,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 12118250225664
+          }
+        },
+        {
+          "call_index": 26,
+          "kind": "SDTM",
+          "flops": 62541817970688,
+          "by_operator": {
+            "aten.addmm": 34357705703424,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 12210055151616
+          }
+        },
+        {
+          "call_index": 27,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 28,
+          "kind": "SDTM",
+          "flops": 63230354915328,
+          "by_operator": {
+            "aten.addmm": 34816730333184,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 12439567466496
+          }
+        },
+        {
+          "call_index": 29,
+          "kind": "SDTM",
+          "flops": 63643477082112,
+          "by_operator": {
+            "aten.addmm": 35092145111040,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 12577274855424
+          }
+        },
+        {
+          "call_index": 30,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 31,
+          "kind": "SDTM",
+          "flops": 64332014026752,
+          "by_operator": {
+            "aten.addmm": 35551169740800,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 12806787170304
+          }
+        },
+        {
+          "call_index": 32,
+          "kind": "SDTM",
+          "flops": 64745136193536,
+          "by_operator": {
+            "aten.addmm": 35826584518656,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 12944494559232
+          }
+        },
+        {
+          "call_index": 33,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 34,
+          "kind": "SDTM",
+          "flops": 65571380527104,
+          "by_operator": {
+            "aten.addmm": 36377414074368,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 13219909337088
+          }
+        },
+        {
+          "call_index": 35,
+          "kind": "SDTM",
+          "flops": 65846795304960,
+          "by_operator": {
+            "aten.addmm": 36561023926272,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 13311714263040
+          }
+        },
+        {
+          "call_index": 36,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 37,
+          "kind": "SDTM",
+          "flops": 66673039638528,
+          "by_operator": {
+            "aten.addmm": 37111853481984,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 13587129040896
+          }
+        },
+        {
+          "call_index": 38,
+          "kind": "SDTM",
+          "flops": 67223869194240,
+          "by_operator": {
+            "aten.addmm": 37479073185792,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 13770738892800
+          }
+        },
+        {
+          "call_index": 39,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 40,
+          "kind": "SDTM",
+          "flops": 68050113527808,
+          "by_operator": {
+            "aten.addmm": 38029902741504,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 14046153670656
+          }
+        },
+        {
+          "call_index": 41,
+          "kind": "SDTM",
+          "flops": 68463235694592,
+          "by_operator": {
+            "aten.addmm": 38305317519360,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 14183861059584
+          }
+        },
+        {
+          "call_index": 42,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 43,
+          "kind": "SDTM",
+          "flops": 69289480028160,
+          "by_operator": {
+            "aten.addmm": 38856147075072,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 14459275837440
+          }
+        },
+        {
+          "call_index": 44,
+          "kind": "SDTM",
+          "flops": 69840309583872,
+          "by_operator": {
+            "aten.addmm": 39223366778880,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 14642885689344
+          }
+        },
+        {
+          "call_index": 45,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 46,
+          "kind": "SDTM",
+          "flops": 70666553917440,
+          "by_operator": {
+            "aten.addmm": 39774196334592,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 14918300467200
+          }
+        },
+        {
+          "call_index": 47,
+          "kind": "SDTM",
+          "flops": 71079676084224,
+          "by_operator": {
+            "aten.addmm": 40049611112448,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 15056007856128
+          }
+        },
+        {
+          "call_index": 48,
+          "kind": "SDTM",
+          "flops": 74384653418496,
+          "by_operator": {
+            "aten.addmm": 42987368742912,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.mm": 16524886671360
+          }
+        },
+        {
+          "call_index": 49,
+          "kind": "SDTM",
+          "flops": 72043627806720,
+          "by_operator": {
+            "aten.addmm": 40692245594112,
+            "aten._scaled_dot_product_efficient_attention": 14872398004224,
+            "aten.bmm": 1101659111424,
+            "aten.mm": 15377325096960
+          }
+        }
+      ]
+    }
+  ]
+}
