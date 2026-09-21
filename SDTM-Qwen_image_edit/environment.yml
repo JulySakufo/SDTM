@@ -1,0 +1,27 @@
+name: sdtm-qwen-image-edit
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch=2.4.1
+  - torchvision=0.19.1
+  - pytorch-cuda=11.8
+  - numpy<2
+  - scipy
+  - pillow
+  - tqdm
+  - pip
+  - pip:
+      - diffusers==0.35.1
+      # The local checkpoint contains the nested Qwen2_5_VLTextConfig format
+      # written by Transformers 4.55.2. Older 4.51.x leaves it as a dict.
+      - transformers==4.55.2
+      - accelerate==1.1.1
+      - safetensors>=0.4.5
+      - sentencepiece>=0.2.0
+      - qwen-vl-utils==0.0.8
+      - open_clip_torch==2.30.0
+      - clean-fid==0.1.35
+      - pytest>=8.0

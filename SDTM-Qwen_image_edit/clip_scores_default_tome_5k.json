@@ -1,0 +1,38 @@
+{
+  "model": "ViT-g-14",
+  "captions": "/irip/huangyu_2026/SDTM/datasets/COCO2017/captions_val2017.json",
+  "results": {
+    "Default": {
+      "clip_score": 28.016250125074386,
+      "evaluated_images": 5000,
+      "validation": {
+        "directory": "/irip_16t_0/huangyu_2026/samples/Qwen-Image-Edit-Default-COCO5K",
+        "image_count": 5000,
+        "expected_count": 5000,
+        "missing_count": 0,
+        "missing": [],
+        "extra_count": 0,
+        "extra": [],
+        "corrupt_count": 0,
+        "corrupt": [],
+        "valid": true
+      }
+    },
+    "ToMe": {
+      "clip_score": 28.257020128899814,
+      "evaluated_images": 5000,
+      "validation": {
+        "directory": "/irip_16t_0/huangyu_2026/samples/Qwen-Image-Edit-ToMe-COCO5K",
+        "image_count": 5000,
+        "expected_count": 5000,
+        "missing_count": 0,
+        "missing": [],
+        "extra_count": 0,
+        "extra": [],
+        "corrupt_count": 0,
+        "corrupt": [],
+        "valid": true
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "real_validation": {
+    "directory": "/irip/huangyu_2026/SDTM/datasets/val2017_center_crop_1024",
+    "image_count": 5000,
+    "expected_count": 5000,
+    "missing_count": 0,
+    "missing": [],
+    "extra_count": 0,
+    "extra": [],
+    "corrupt_count": 0,
+    "corrupt": [],
+    "valid": true
+  },
+  "inception_dir": "/irip/huangyu_2026/SDTM/inceptions",
+  "results": {
+    "Default": {
+      "fid": 10.985069895929598,
+      "validation": {
+        "directory": "/irip_16t_0/huangyu_2026/samples/Qwen-Image-Edit-Default-COCO5K",
+        "image_count": 5000,
+        "expected_count": 5000,
+        "missing_count": 0,
+        "missing": [],
+        "extra_count": 0,
+        "extra": [],
+        "corrupt_count": 0,
+        "corrupt": [],
+        "valid": true
+      }
+    },
+    "ToMe": {
+      "fid": 10.709483230676597,
+      "validation": {
+        "directory": "/irip_16t_0/huangyu_2026/samples/Qwen-Image-Edit-ToMe-COCO5K",
+        "image_count": 5000,
+        "expected_count": 5000,
+        "missing_count": 0,
+        "missing": [],
+        "extra_count": 0,
+        "extra": [],
+        "corrupt_count": 0,
+        "corrupt": [],
+        "valid": true
+      }
+    }
+  }
+}
