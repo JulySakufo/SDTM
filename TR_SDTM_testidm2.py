@@ -215,7 +215,7 @@ def SSM(
             if r > 0:
                 _, sim_super_patch_idxs = ssmscore_map.topk(r, dim=-1)   # [B, r]
                 low_n  = int(r * 0.25)
-                mid_n  = int(r * 0.25)
+                mid_n  = int(r * 0.30)
                 high_n = r - low_n - mid_n
 
                 # 取每个batch对应选出窗口的variance分数，按降序排列（高分=低复杂度在前）

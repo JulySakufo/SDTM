@@ -334,7 +334,7 @@ if __name__ == "__main__":
     parser.add_argument("--tore-type", type=str, choices=["Default", "ToMe", "SDTM", "SDTM_TaylorSeer"], default="SDTM")
     
     # Additional ToMe arguments
-    parser.add_argument("--ToMe-ratio", type=float, default=0.1)
+    parser.add_argument("--ToMe-ratio", type=float, default=0.9)
     parser.add_argument("--ToMe-sx", type=int, default=2)
     parser.add_argument("--ToMe-sy", type=int, default=2)
     parser.add_argument("--ToMe-use-rand", action=argparse.BooleanOptionalAction, default=True)
@@ -359,8 +359,8 @@ if __name__ == "__main__":
     parser.add_argument("--SDTM-cache_each_step", action=argparse.BooleanOptionalAction, default=True, help="Bind objects together without actual merging.")
 
     # Additional TaylorSeer arguments (used with SDTM_TaylorSeer)
-    parser.add_argument("--Taylor-interval", type=int, default=4, help="TaylorSeer caching interval: run full computation every N steps")
-    parser.add_argument("--Taylor-max-order", type=int, default=2, help="Max order of Taylor expansion for derivative approximation")
-    parser.add_argument("--Taylor-first-enhance", type=int, default=2, help="Number of initial/final steps forced to full computation")
+    parser.add_argument("--Taylor-interval", type=int, default=2, help="TaylorSeer caching interval: run full computation every N steps")
+    parser.add_argument("--Taylor-max-order", type=int, default=1, help="Max order of Taylor expansion for derivative approximation")
+    parser.add_argument("--Taylor-first-enhance", type=int, default=12, help="Number of initial/final steps forced to full computation")
     args = parser.parse_args()
     main(args)

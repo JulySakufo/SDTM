@@ -1,11 +1,12 @@
-"""Measure the *executed* transformer FLOPs of the SDTM SD3 pipelines.
+"""Measure the *executed* transformer FLOPs of accelerated SD3 pipelines.
 
 This project changes the number of image tokens at runtime and, in the
 TaylorSeer variant, can skip most of a transformer block. A static profile of
-an unmodified DiT therefore does not describe SDTM. This script runs the real
+an unmodified DiT therefore does not describe ToMe/SDTM. This script runs the real
 StableDiffusion3Pipeline and places PyTorch's ``FlopCounterMode`` immediately
 around each ``pipe.transformer.forward`` call. It consequently measures the
-actual token counts and branches used at every denoising step.
+actual token counts and branches used at every denoising step. Both ToMe and
+the SDTM variants are supported.
 
 Counted region
 --------------
@@ -30,6 +31,12 @@ by sample.py::
     conda run -n sdtm python measure_flops.py \
         --modes Default,SDTM --height 1024 --width 1024 \
         --num-inference-steps 50 --batch-size 1
+
+Measure the baseline and ToMe with the settings used by sample.py::
+
+    conda run -n sdtm python measure_flops.py \
+        --modes Default,ToMe --ToMe-ratio 0.1 \
+        --ToMe-sx 2 --ToMe-sy 2 --ToMe-pseudo-merge
 
 Measure the alternative IDM2 implementation and save all per-step values::
 
@@ -91,10 +98,11 @@ DEFAULT_MODEL_PATH = os.path.join(
     "stable-diffusion-3-medium-diffusers",
 )
 
-ALL_MODES = ("Default", "SDTM", "SDTM_testidm2", "SDTM_TaylorSeer")
+ALL_MODES = ("Default", "ToMe", "SDTM", "SDTM_testidm2", "SDTM_TaylorSeer")
 _MODE_ALIASES = {
     "default": "Default",
     "baseline": "Default",
+    "tome": "ToMe",
     "sdtm": "SDTM",
     "sdtm_testidm2": "SDTM_testidm2",
     "testidm2": "SDTM_testidm2",
@@ -172,6 +180,8 @@ class TransformerFlopRecorder:
     def _step_kind(self, step_index: int) -> str:
         if self.mode == "Default":
             return "full"
+        if self.mode == "ToMe":
+            return "ToMe"
 
         tore_info = getattr(self.transformer, "_tore_info", {})
         states = tore_info.get("states", {})
@@ -237,9 +247,25 @@ class TransformerFlopRecorder:
         self._installed = False
 
 
-def _apply_sdtm_mode(pipe: StableDiffusion3Pipeline, mode: str, args) -> None:
-    """Apply exactly one of the three SDTM implementations to a fresh pipe."""
+def _apply_mode(pipe: StableDiffusion3Pipeline, mode: str, args) -> None:
+    """Apply one ToMe/SDTM implementation to a fresh pipeline."""
     if mode == "Default":
+        return
+
+    if mode == "ToMe":
+        from TR_ToMe import apply_ToMe
+
+        apply_ToMe(
+            pipe,
+            ratio=args.tome_ratio,
+            sx=args.tome_sx,
+            sy=args.tome_sy,
+            use_rand=args.tome_use_rand,
+            merge_attn=args.tome_merge_attn,
+            merge_crossattn=args.tome_merge_crossattn,
+            merge_mlp=args.tome_merge_mlp,
+            change_merge_to_prune=args.tome_pseudo_merge,
+        )
         return
 
     common = dict(
@@ -346,9 +372,9 @@ def measure_mode(mode: str, args) -> Dict[str, Any]:
     pipe = _load_pipeline(args)
     recorder: Optional[TransformerFlopRecorder] = None
     try:
-        _apply_sdtm_mode(pipe, mode, args)
-        # SDTM creates its merge generator lazily from the device's default RNG
-        # state. Reset that state for every mode so random merging is comparable.
+        _apply_mode(pipe, mode, args)
+        # ToMe/SDTM create their merge generators lazily from the device's
+        # default RNG state. Reset it for every mode so merging is comparable.
         torch.manual_seed(args.seed)
         if str(args.device).startswith("cuda"):
             torch.cuda.manual_seed_all(args.seed)
@@ -502,19 +528,37 @@ def _validate_args(args) -> None:
         raise ValueError("--height and --width must be positive")
     if args.height % 16 != 0 or args.width % 16 != 0:
         raise ValueError("SD3 image height and width must be divisible by 16")
-    if args.sdtm_sx <= 0 or args.sdtm_sy <= 0:
-        raise ValueError("--SDTM-sx and --SDTM-sy must be positive")
-    if not 0 <= args.sdtm_ratio < 1:
-        raise ValueError("--SDTM-ratio must be in [0, 1)")
-    if args.sdtm_deviation < 0:
-        raise ValueError("--SDTM-deviation cannot be negative")
-    if not 0 <= args.sdtm_ratio - args.sdtm_deviation:
-        raise ValueError("--SDTM-ratio - --SDTM-deviation cannot be negative")
-    if args.sdtm_ratio + args.sdtm_deviation >= 1:
-        raise ValueError("--SDTM-ratio + --SDTM-deviation must be less than 1")
-    if any(mode != "Default" for mode in args.modes):
+    accelerated_modes = {"ToMe", "SDTM", "SDTM_testidm2", "SDTM_TaylorSeer"}
+    sdtm_modes = {"SDTM", "SDTM_testidm2", "SDTM_TaylorSeer"}
+    use_tome = "ToMe" in args.modes
+    use_sdtm = any(mode in sdtm_modes for mode in args.modes)
+
+    if any(mode in accelerated_modes for mode in args.modes):
         if args.height != args.width:
-            raise ValueError("the current SDTM implementations require square images")
+            raise ValueError("the current ToMe/SDTM implementations require square images")
+
+    if use_tome:
+        if args.tome_sx <= 0 or args.tome_sy <= 0:
+            raise ValueError("--ToMe-sx and --ToMe-sy must be positive")
+        if not 0 <= args.tome_ratio <= 1:
+            raise ValueError("--ToMe-ratio must be in [0, 1]")
+        token_grid = args.height // 16
+        if args.tome_sx > token_grid or args.tome_sy > token_grid:
+            raise ValueError(
+                "--ToMe-sx and --ToMe-sy cannot exceed the SD3 image-token grid"
+            )
+
+    if use_sdtm:
+        if args.sdtm_sx <= 0 or args.sdtm_sy <= 0:
+            raise ValueError("--SDTM-sx and --SDTM-sy must be positive")
+        if not 0 <= args.sdtm_ratio < 1:
+            raise ValueError("--SDTM-ratio must be in [0, 1)")
+        if args.sdtm_deviation < 0:
+            raise ValueError("--SDTM-deviation cannot be negative")
+        if not 0 <= args.sdtm_ratio - args.sdtm_deviation:
+            raise ValueError("--SDTM-ratio - --SDTM-deviation cannot be negative")
+        if args.sdtm_ratio + args.sdtm_deviation >= 1:
+            raise ValueError("--SDTM-ratio + --SDTM-deviation must be less than 1")
         token_grid = args.height // 16
         if token_grid % args.sdtm_sx or token_grid % args.sdtm_sy:
             raise ValueError(
@@ -537,7 +581,7 @@ def _validate_args(args) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Measure executed transformer FLOPs for SD3 + SDTM variants.",
+        description="Measure executed transformer FLOPs for SD3 + ToMe/SDTM variants.",
     )
     parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH)
     parser.add_argument("--variant", default=None, help="Optional diffusers weight variant, e.g. fp16.")
@@ -580,6 +624,45 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Keep aliases matching sample.py so an experiment command can be copied
     # directly between sampling and FLOP measurement.
+    parser.add_argument("--ToMe-ratio", "--tome-ratio", dest="tome_ratio", type=float, default=0.9)
+    parser.add_argument("--ToMe-sx", "--tome-sx", dest="tome_sx", type=int, default=2)
+    parser.add_argument("--ToMe-sy", "--tome-sy", dest="tome_sy", type=int, default=2)
+    parser.add_argument(
+        "--ToMe-use-rand",
+        "--tome-use-rand",
+        dest="tome_use_rand",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument(
+        "--ToMe-merge-attn",
+        "--tome-merge-attn",
+        dest="tome_merge_attn",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument(
+        "--ToMe-merge-crossattn",
+        "--tome-merge-crossattn",
+        dest="tome_merge_crossattn",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--ToMe-merge-mlp",
+        "--tome-merge-mlp",
+        dest="tome_merge_mlp",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--ToMe-pseudo-merge",
+        "--tome-pseudo-merge",
+        dest="tome_pseudo_merge",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+
     parser.add_argument("--SDTM-ratio", "--sdtm-ratio", dest="sdtm_ratio", type=float, default=0.3)
     parser.add_argument(
         "--SDTM-deviation", "--sdtm-deviation", dest="sdtm_deviation", type=float, default=0.2
