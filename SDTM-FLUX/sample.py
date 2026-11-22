@@ -1,8 +1,9 @@
-"""Unified COCO sampler for FLUX.1-dev and the four acceleration modes."""
+"""Generate and benchmark FLUX.1-dev with a caption dataset or custom prompts."""
 
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
 import os
@@ -13,6 +14,17 @@ from typing import Any, Dict, Iterable, List, Sequence
 import torch
 from tqdm import tqdm
 
+from clip_evaluation import DEFAULT_CLIP_MODEL, DEFAULT_CLIP_MODEL_NAME, compute_clip_score, load_clip_model
+from evaluation_utils import matching_images, write_json
+from fid_evaluation import (
+    DEFAULT_INCEPTION_DIR,
+    DEFAULT_REAL_DIR,
+    INCEPTION_FILENAME,
+    OfflineInception,
+    compute_fid_score,
+    extract_fid_features,
+)
+from flop_profile import profile_transformer
 from flux_core import patch_statistics, set_batch_seeds
 
 
@@ -20,6 +32,23 @@ HERE = Path(__file__).resolve().parent
 DEFAULT_MODEL = (HERE / "../../models/FLUX.1-dev").resolve()
 DEFAULT_CAPTIONS = (HERE / "../datasets/COCO2017/captions_val2017.json").resolve()
 MODES = ("Default", "ToMe", "SDTM", "SDTM_testidm2", "SDTM_TaylorSeer")
+
+
+def parse_modes(value: str) -> list[str]:
+    if value.strip().lower() == "all":
+        return list(MODES)
+    aliases = {mode.lower(): mode for mode in MODES}
+    aliases.update(baseline="Default", testidm2="SDTM_testidm2", taylorseer="SDTM_TaylorSeer")
+    modes = []
+    for token in filter(None, (item.strip() for item in value.split(","))):
+        mode = aliases.get(token.lower())
+        if mode is None:
+            raise ValueError(f"unknown mode {token!r}; choose from {', '.join(MODES)}")
+        if mode not in modes:
+            modes.append(mode)
+    if not modes:
+        raise ValueError("at least one method is required")
+    return modes
 
 
 def load_captions(path: str | os.PathLike[str]) -> List[Dict[str, Any]]:
@@ -48,7 +77,9 @@ def image_seed(base_seed: int, image_id: Any) -> int:
 
 def image_filename(image_id: Any) -> str:
     value = str(image_id)
-    return f"{int(value):012d}.jpg" if value.isdigit() else f"{value}.jpg"
+    if not value or value in {".", ".."} or any(char in value for char in "/\\\0"):
+        raise ValueError(f"invalid image ID: {image_id!r}")
+    return f"{int(value):012d}.jpg" if value.isdecimal() else f"{value}.jpg"
 
 
 def _dtype(name: str) -> torch.dtype:
@@ -187,71 +218,150 @@ def pipeline_call_kwargs(args, prompts: Sequence[str], generators: Sequence[torc
     }
 
 
-def _write_json(path: Path, value: Any) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    with open(temporary, "w", encoding="utf-8") as handle:
-        json.dump(value, handle, ensure_ascii=False, indent=2, default=str)
-    temporary.replace(path)
+def batch_call_kwargs(pipe, args, batch: Sequence[Dict[str, Any]]) -> dict:
+    seeds = [image_seed(args.seed, item["image_id"]) for item in batch]
+    set_batch_seeds(pipe, seeds)
+    generators = [torch.Generator("cpu").manual_seed(seed) for seed in seeds]
+    return pipeline_call_kwargs(args, [item["caption"] for item in batch], generators)
+
+
+def timed_generation(pipe, args, batch):
+    kwargs = batch_call_kwargs(pipe, args, batch)
+    cuda_device = torch.device(args.device) if args.device.startswith("cuda") else None
+    with torch.inference_mode():
+        if cuda_device is not None:
+            torch.cuda.synchronize(cuda_device)
+        started = time.perf_counter()
+        images = pipe(**kwargs).images
+        if cuda_device is not None:
+            torch.cuda.synchronize(cuda_device)
+        elapsed = time.perf_counter() - started
+    if len(images) != len(batch):
+        raise RuntimeError(f"expected {len(batch)} generated images, received {len(images)}")
+    return images, elapsed
+
+
+def generate_images(args, captions, output_dir: Path) -> dict:
+    pipe = apply_mode(load_pipeline(args), args)
+    try:
+        first_batch = captions[: args.batch_size]
+        for _ in range(args.warmup_runs):
+            with torch.inference_mode():
+                pipe(**batch_call_kwargs(pipe, args, first_batch))
+
+        generated = skipped = 0
+        elapsed = 0.0
+        for start in tqdm(range(0, len(captions), args.batch_size), desc=f"Generating {args.tore_type}"):
+            batch = captions[start : start + args.batch_size]
+            if args.skip_existing:
+                pending = [item for item in batch if not (output_dir / image_filename(item["image_id"])).is_file()]
+                skipped += len(batch) - len(pending)
+                batch = pending
+            if not batch:
+                continue
+            images, duration = timed_generation(pipe, args, batch)
+            elapsed += duration
+            for item, image in zip(batch, images):
+                destination = output_dir / image_filename(item["image_id"])
+                temporary = destination.with_suffix(".jpg.tmp")
+                image.save(temporary, format="JPEG", quality=95)
+                temporary.replace(destination)
+            generated += len(batch)
+
+        timed_images = generated
+        if not timed_images:
+            _, elapsed = timed_generation(pipe, args, first_batch)
+            timed_images = len(first_batch)
+
+        flops = profile_transformer(pipe, args.tore_type, batch_call_kwargs(pipe, args, first_batch))
+        flops["profiled_image_ids"] = [item["image_id"] for item in first_batch]
+        return {
+            "generated_this_run": generated,
+            "skipped_existing": skipped,
+            "timed_images": timed_images,
+            "elapsed_seconds": elapsed,
+            "seconds_per_image": elapsed / timed_images,
+            "transformer_parameters": sum(parameter.numel() for parameter in pipe.transformer.parameters()),
+            "transformer_flops_per_image": flops["total_flops_per_image"],
+            "patch": patch_statistics(pipe),
+            "flops": flops,
+        }
+    finally:
+        del pipe
+        gc.collect()
+        if args.device.startswith("cuda"):
+            torch.cuda.empty_cache()
+
+
+def evaluate_dataset(args, captions, generated_paths, reference_paths) -> dict:
+    device = args.metric_device or args.device
+    clip_model = load_clip_model(Path(args.clip_model).expanduser(), args.clip_model_name, device)
+    samples = [(path, item["caption"]) for path, item in zip(generated_paths, captions)]
+    clip_score = compute_clip_score(
+        samples, clip_model, device=device, batch_size=args.metric_batch_size, description=f"CLIP {args.tore_type}"
+    )
+    del clip_model
+
+    extractor = OfflineInception(str(Path(args.inception_dir).expanduser()), device)
+    feature_options = dict(device=device, batch_size=args.metric_batch_size)
+    references = extract_fid_features(reference_paths, extractor, description="FID references", **feature_options)
+    generated = extract_fid_features(generated_paths, extractor, description=f"FID {args.tore_type}", **feature_options)
+    return {"clip_score": clip_score, "fid": compute_fid_score(references, generated), "evaluated_images": len(samples)}
 
 
 def run(args) -> Path:
-    captions = load_captions(args.caption_path)
-    if args.limit is not None:
-        captions = captions[: args.limit]
-    output_dir = Path(args.output_path).expanduser().resolve() / experiment_name(args)
+    name = experiment_name(args)
+    if args.prompt is not None:
+        if not args.prompt or any(not prompt.strip() for prompt in args.prompt):
+            raise ValueError("--prompt must contain non-whitespace text")
+        captions = [{"image_id": index, "caption": prompt} for index, prompt in enumerate(args.prompt)]
+        source = {"type": "prompts"}
+        use_input_suffix = True
+    else:
+        caption_path = Path(args.caption_path or DEFAULT_CAPTIONS).expanduser().resolve()
+        captions = load_captions(caption_path)
+        source = {"type": "dataset", "caption_path": str(caption_path)}
+        use_input_suffix = caption_path != DEFAULT_CAPTIONS
+    if not args.experiment_name and use_input_suffix:
+        digest = hashlib.sha256(json.dumps(captions, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+        name += f"-{source['type']}-{digest}"
+
+    captions = captions[: args.limit]
+    if not captions:
+        raise ValueError("the selected input contains no prompts")
+    filenames = [image_filename(item["image_id"]) for item in captions]
+    if len(set(filenames)) != len(filenames):
+        raise ValueError("image IDs must map to unique output filenames")
+    output_dir = Path(args.output_path).expanduser().resolve() / name
+    generated_paths = [output_dir / filename for filename in filenames]
+    reference_paths = None
+    if source["type"] == "dataset":
+        if len(captions) < 2:
+            raise ValueError("dataset evaluation requires at least two images to compute FID")
+        real_dir = Path(args.real_dir).expanduser().resolve()
+        if real_dir == output_dir.resolve():
+            raise ValueError("the reference and output directories must be different")
+        reference_paths = matching_images(real_dir, filenames)
+        source["real_dir"] = str(real_dir)
+        metric_weights = (Path(args.clip_model).expanduser(), Path(args.inception_dir).expanduser() / INCEPTION_FILENAME)
+        for weights in metric_weights:
+            if not weights.is_file():
+                raise FileNotFoundError(f"dataset metric checkpoint not found: {weights}")
+
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    pipe = apply_mode(load_pipeline(args), args)
-    print(f"Mode: {args.tore_type}; patch: {patch_statistics(pipe)}")
-    print(f"Output: {output_dir}; captions: {len(captions)}")
-
-    if args.warmup_runs:
-        warmup_seeds = [args.seed]
-        set_batch_seeds(pipe, warmup_seeds)
-        warmup_generators = [torch.Generator("cpu").manual_seed(args.seed)]
-        for _ in range(args.warmup_runs):
-            with torch.inference_mode():
-                pipe(**pipeline_call_kwargs(args, ["A photo of a cat"], warmup_generators))
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-    generated = skipped = 0
-    started = time.perf_counter()
-    for start in tqdm(range(0, len(captions), args.batch_size), desc="Generating images"):
-        batch = captions[start : start + args.batch_size]
-        if args.skip_existing:
-            remaining = [item for item in batch if not (output_dir / image_filename(item["image_id"])).exists()]
-            skipped += len(batch) - len(remaining)
-            batch = remaining
-        if not batch:
-            continue
-        seeds = [image_seed(args.seed, item["image_id"]) for item in batch]
-        generators = [torch.Generator("cpu").manual_seed(seed) for seed in seeds]
-        set_batch_seeds(pipe, seeds)
-        with torch.inference_mode():
-            images = pipe(
-                **pipeline_call_kwargs(args, [item["caption"] for item in batch], generators)
-            ).images
-        for item, image in zip(batch, images):
-            image.save(output_dir / image_filename(item["image_id"]), quality=95)
-            generated += 1
-
-    elapsed = time.perf_counter() - started
-    expected = [image_filename(item["image_id"]) for item in captions]
-    missing = [name for name in expected if not (output_dir / name).is_file()]
+    print(f"{args.tore_type} will write {len(captions)} images to {output_dir}")
+    performance = generate_images(args, captions, output_dir)
+    missing = [path.name for path in generated_paths if not path.is_file()]
     manifest = {
         "mode": args.tore_type,
         "model_path": str(Path(args.model_path).resolve()),
+        "input": source,
         "parameters": vars(args),
-        "patch": patch_statistics(pipe),
         "caption_count": len(captions),
-        "generated_this_run": generated,
-        "skipped_existing": skipped,
         "missing_count": len(missing),
         "missing_files": missing[:100],
-        "elapsed_seconds": elapsed,
-        "seconds_per_expected_image": elapsed / max(len(captions), 1),
         "torch_version": torch.__version__,
+        **performance,
     }
     try:
         import diffusers
@@ -259,16 +369,29 @@ def run(args) -> Path:
         manifest["diffusers_version"] = diffusers.__version__
     except ImportError:
         pass
-    _write_json(output_dir / "manifest.json", manifest)
+    manifest_path = output_dir / "manifest.json"
+    write_json(manifest_path, manifest)
+    print(
+        f"{args.tore_type} | {manifest['seconds_per_image']:.4f} s/image "
+        f"({manifest['timed_images']} timed) | {manifest['transformer_parameters']:,} transformer parameters "
+        f"| {manifest['transformer_flops_per_image'] / 1e12:.5g} TFLOPs/image"
+    )
     if missing:
         raise RuntimeError(f"generation finished with {len(missing)} missing images; see manifest.json")
-    print(f"Completed {len(captions)} images in {elapsed:.2f}s ({generated} newly generated).")
+    if reference_paths is not None:
+        manifest.update(evaluate_dataset(args, captions, generated_paths, reference_paths))
+        write_json(manifest_path, manifest)
+        print(f"{args.tore_type} | CLIP Score {manifest['clip_score']:.4f} | FID {manifest['fid']:.4f}")
+    print(f"Results saved to {manifest_path}")
     return output_dir
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(default_mode: str | None = "SDTM") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--caption-path", default=str(DEFAULT_CAPTIONS))
+    inputs = parser.add_mutually_exclusive_group()
+    inputs.add_argument("--dataset", "--caption-path", dest="caption_path", metavar="JSON",
+                        help="COCO-style caption JSON (defaults to the local COCO 2017 validation captions)")
+    inputs.add_argument("--prompt", action="append", help="repeat this option to supply multiple custom prompts")
     parser.add_argument("--output-path", default="../../../../irip_16t_0/huangyu_2026/samples")
     parser.add_argument("--experiment-name", default=None)
     parser.add_argument("--model-path", default=str(DEFAULT_MODEL))
@@ -283,11 +406,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-sequence-length", type=int, default=512)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--tore-type", choices=MODES, default="SDTM")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--tore-type", choices=MODES, default=default_mode, help="run a single method")
+    modes.add_argument("--modes", help="comma-separated methods or 'all'")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--skip-existing", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--warmup-runs", type=int, default=1)
     parser.add_argument("--show-pipeline-progress", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--real-dir", default=str(DEFAULT_REAL_DIR), help="reference images for dataset FID")
+    parser.add_argument("--clip-model", default=str(DEFAULT_CLIP_MODEL))
+    parser.add_argument("--clip-model-name", default=DEFAULT_CLIP_MODEL_NAME)
+    parser.add_argument("--inception-dir", default=str(DEFAULT_INCEPTION_DIR))
+    parser.add_argument("--metric-batch-size", type=int, default=32)
+    parser.add_argument("--metric-device", help="device for dataset metrics (defaults to --device)")
 
     parser.add_argument("--ToMe-ratio", type=float, default=0.9)
     parser.add_argument("--ToMe-sx", type=int, default=2)
@@ -330,6 +461,8 @@ def validate_args(args) -> None:
         raise ValueError("FLUX height and width must be positive multiples of 16")
     if args.limit is not None and args.limit <= 0:
         raise ValueError("--limit must be positive")
+    if args.warmup_runs < 0 or args.metric_batch_size <= 0:
+        raise ValueError("warmup runs must be non-negative and metric batch size must be positive")
     if args.tore_type == "ToMe" and not 0 <= args.ToMe_ratio <= 1:
         raise ValueError("--ToMe-ratio must be in [0, 1]")
     grid_height, grid_width = args.height // 16, args.width // 16
@@ -357,10 +490,23 @@ def validate_args(args) -> None:
         raise ValueError("invalid TaylorSeer schedule")
 
 
-def main(argv: Iterable[str] | None = None) -> None:
-    args = build_parser().parse_args(argv)
-    validate_args(args)
-    run(args)
+def main(argv: Iterable[str] | None = None, *, default_mode: str = "SDTM") -> None:
+    parser = build_parser(default_mode)
+    args = parser.parse_args(argv)
+    try:
+        modes = [args.tore_type] if args.modes is None else parse_modes(args.modes)
+        configurations = []
+        for mode in modes:
+            config = argparse.Namespace(**vars(args))
+            config.tore_type = mode
+            if args.experiment_name and len(modes) > 1:
+                config.experiment_name = f"{args.experiment_name}-{mode}"
+            validate_args(config)
+            configurations.append(config)
+    except ValueError as error:
+        parser.error(str(error))
+    for config in configurations:
+        run(config)
 
 
 if __name__ == "__main__":

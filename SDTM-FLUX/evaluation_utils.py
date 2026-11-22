@@ -29,7 +29,26 @@ def parse_named_paths(values: Iterable[str]) -> Dict[str, Path]:
 def list_images(directory: Path) -> List[Path]:
     if not directory.is_dir():
         raise FileNotFoundError(f"image directory does not exist: {directory}")
-    return sorted(path for path in directory.iterdir() if path.suffix.lower() in IMAGE_SUFFIXES)
+    return sorted(path for path in directory.iterdir() if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES)
+
+
+def matching_images(directory: Path, filenames: Iterable[str]) -> List[Path]:
+    """Select one reference image per ID, ignoring padding on numeric IDs."""
+    def image_id(stem: str) -> str:
+        return str(int(stem)) if stem.isdecimal() else stem
+
+    by_id: Dict[str, List[Path]] = {}
+    for path in list_images(directory):
+        by_id.setdefault(image_id(path.stem), []).append(path)
+    selected = []
+    for name in filenames:
+        matches = by_id.get(image_id(Path(name).stem), [])
+        if not matches:
+            raise FileNotFoundError(f"no reference image for {name} in {directory}")
+        if len(matches) > 1:
+            raise ValueError(f"multiple reference images match {name} in {directory}")
+        selected.append(matches[0])
+    return selected
 
 
 def validate_image_directory(
