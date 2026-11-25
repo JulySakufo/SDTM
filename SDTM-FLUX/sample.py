@@ -9,6 +9,7 @@ import json
 import os
 import time
 from pathlib import Path
+from tempfile import mkdtemp
 from typing import Any, Dict, Iterable, List, Sequence
 
 import torch
@@ -309,7 +310,7 @@ def evaluate_dataset(args, captions, generated_paths, reference_paths) -> dict:
     return {"clip_score": clip_score, "fid": compute_fid_score(references, generated), "evaluated_images": len(samples)}
 
 
-def run(args) -> Path:
+def run(args, *, repeats: int = 1) -> Path:
     name = experiment_name(args)
     if args.prompt is not None:
         if not args.prompt or any(not prompt.strip() for prompt in args.prompt):
@@ -333,7 +334,6 @@ def run(args) -> Path:
     if len(set(filenames)) != len(filenames):
         raise ValueError("image IDs must map to unique output filenames")
     output_dir = Path(args.output_path).expanduser().resolve() / name
-    generated_paths = [output_dir / filename for filename in filenames]
     reference_paths = None
     if source["type"] == "dataset":
         if len(captions) < 2:
@@ -348,6 +348,24 @@ def run(args) -> Path:
             if not weights.is_file():
                 raise FileNotFoundError(f"dataset metric checkpoint not found: {weights}")
 
+    if repeats == 1:
+        run_round(args, captions, filenames, source, reference_paths, output_dir)
+        return output_dir
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    repeats_dir = Path(mkdtemp(prefix="repeats-", dir=output_dir))
+    flops_by_round = []
+    for round_number in range(1, repeats + 1):
+        print(f"{args.tore_type} | Round {round_number}/{repeats}")
+        round_dir = repeats_dir / f"run-{round_number:02d}"
+        flops_by_round.append(run_round(args, captions, filenames, source, reference_paths, round_dir))
+    comparison = "identical" if len(set(flops_by_round)) == 1 else "vary"
+    print(f"{args.tore_type} | FLOPs/image by round: {', '.join(map(str, flops_by_round))} ({comparison})")
+    return repeats_dir
+
+
+def run_round(args, captions, filenames, source, reference_paths, output_dir: Path) -> float:
+    generated_paths = [output_dir / filename for filename in filenames]
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"{args.tore_type} will write {len(captions)} images to {output_dir}")
     performance = generate_images(args, captions, output_dir)
@@ -383,7 +401,7 @@ def run(args) -> Path:
         write_json(manifest_path, manifest)
         print(f"{args.tore_type} | CLIP Score {manifest['clip_score']:.4f} | FID {manifest['fid']:.4f}")
     print(f"Results saved to {manifest_path}")
-    return output_dir
+    return manifest["transformer_flops_per_image"]
 
 
 def build_parser(default_mode: str | None = "SDTM") -> argparse.ArgumentParser:
@@ -492,8 +510,12 @@ def validate_args(args) -> None:
 
 def main(argv: Iterable[str] | None = None, *, default_mode: str = "SDTM") -> None:
     parser = build_parser(default_mode)
+    parser.add_argument("--repeats", type=int, default=1, help="run each selected method this many times")
     args = parser.parse_args(argv)
+    repeats = vars(args).pop("repeats")
     try:
+        if repeats < 1:
+            raise ValueError("--repeats must be positive")
         modes = [args.tore_type] if args.modes is None else parse_modes(args.modes)
         configurations = []
         for mode in modes:
@@ -506,7 +528,7 @@ def main(argv: Iterable[str] | None = None, *, default_mode: str = "SDTM") -> No
     except ValueError as error:
         parser.error(str(error))
     for config in configurations:
-        run(config)
+        run(config, repeats=repeats)
 
 
 if __name__ == "__main__":

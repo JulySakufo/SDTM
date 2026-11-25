@@ -44,6 +44,24 @@ metrics use only the selected IDs. FID requires at least two selected images.
 Dataset input defaults to the local COCO 2017 validation set and its
 1024-pixel center crops when no input flag is supplied.
 
+### Repeat a dataset run
+
+```bash
+conda run --no-capture-output -n sdtm python sample.py \
+  --tore-type SDTM \
+  --dataset datasets/COCO2017_10/captions_val2017.json \
+  --real-dir datasets/COCO2017_10/val2017_center_crop_1024 \
+  --batch-size 1 --seed 0 --repeats 5 --output-path ./samples
+```
+
+Each round generates the full subset with the same seed and settings. For
+multiple rounds, each invocation creates a new `repeats-*` directory inside
+the experiment directory. Its `run-01`, `run-02`, and subsequent directories
+each contain the generated images and the standard `manifest.json`. If you
+select multiple methods, each method runs the requested number of rounds.
+The terminal lists the exact `transformer_flops_per_image` values by round and
+reports whether they match. FLOP profiling uses the first batch in each round.
+
 ### Custom prompts
 
 ```bash
